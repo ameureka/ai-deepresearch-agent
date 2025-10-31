@@ -1,0 +1,17 @@
+graph LR
+    subgraph "Before Phase 1"
+        A1[Agent] -->|直接调用| A2[API]
+        A2 --> A3[模型]
+    end
+    
+    subgraph "After Phase 1.5"
+        B1[Agent] --> B2[ModelAdapter<br/>参数验证/调整]
+        B2 --> B3[ContextManager<br/>分块/合并]
+        B3 --> B4[API]
+        B4 --> B5[模型]
+    end
+    
+    style A1 fill:#ffcccc
+    style B1 fill:#ccffcc
+    style B2 fill:#ccffcc
+    style B3 fill:#ccffcc

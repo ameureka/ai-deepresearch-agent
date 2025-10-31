@@ -1,0 +1,9 @@
+graph TD
+    A[简单的参数错误<br/>max_tokens=15000] -->|深入分析| B[模型适配缺失<br/>没有参数验证]
+    B -->|继续深入| C[上下文管理缺失<br/>无法处理长文本]
+    C -->|根本原因| D[架构设计问题<br/>Agent 直连 API]
+    
+    style A fill:#ffcccc
+    style B fill:#ffddaa
+    style C fill:#ffffaa
+    style D fill:#ffaaaa

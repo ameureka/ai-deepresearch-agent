@@ -1,0 +1,50 @@
+services:
+  # Web Service - FastAPI Application
+  - type: web
+    name: ai-research-assistant
+    env: python
+    region: oregon  # 或选择离你更近的区域：oregon, frankfurt, singapore
+    plan: free  # 免费层，可以改为 starter ($7/月)
+    
+    # 构建配置
+    buildCommand: pip install -r requirements.txt
+    
+    # 启动命令（生产级）
+    startCommand: gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120
+    
+    # 健康检查
+    healthCheckPath: /api/health
+    
+    # 环境变量（敏感信息需要在 Render Dashboard 手动添加）
+    envVars:
+      - key: ENV
+        value: production
+      
+      - key: PYTHONUNBUFFERED
+        value: 1
+      
+      - key: LOG_LEVEL
+        value: INFO
+      
+      # 以下变量包含敏感信息，需要在 Render Dashboard 中设置为 Secret
+      # - key: DATABASE_URL
+      #   sync: false  # 标记为需要手动设置
+      
+      # - key: OPENAI_API_KEY
+      #   sync: false
+      
+      # - key: DEEPSEEK_API_KEY
+      #   sync: false
+      
+      # - key: TAVILY_API_KEY
+      #   sync: false
+      
+      # CORS 配置（部署后需要更新为实际域名）
+      - key: ALLOWED_ORIGINS
+        value: "*"  # 临时允许所有来源，部署后改为实际域名
+
+# 注意事项：
+# 1. 敏感的环境变量（API Keys, DATABASE_URL）需要在 Render Dashboard 手动添加
+# 2. 部署后记得更新 ALLOWED_ORIGINS 为实际的域名
+# 3. 免费层会在 15 分钟无请求后休眠，可以使用 cron-job.org 防止休眠
+# 4. 如果遇到内存不足（OOM），需要升级到 Starter 计划

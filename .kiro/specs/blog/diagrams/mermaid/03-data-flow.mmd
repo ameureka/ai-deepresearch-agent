@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant User as 用户
+    participant Planner as Planner Agent
+    participant Research as Research Agent
+    participant Writer as Writer Agent
+    participant Editor as Editor Agent
+    
+    User->>Planner: 研究主题
+    Note over Planner: 生成执行步骤
+    
+    Planner->>Research: 执行研究
+    Note over Research: 收集信息<br/>输出: 20K tokens
+    
+    Research->>Writer: 传递研究数据
+    Note over Writer: 生成草稿<br/>输出: 8K tokens
+    
+    Writer->>Editor: 传递完整草稿
+    Note over Editor: 处理全文<br/>输入: 28K+ tokens
+    Note right of Editor: ❌ 超过上下文窗口<br/>❌ max_tokens 错误

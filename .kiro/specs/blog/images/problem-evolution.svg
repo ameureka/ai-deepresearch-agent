@@ -1,0 +1,56 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 16px sans-serif; fill: #2c3e50; }
+      .subtitle { font: 14px sans-serif; fill: #34495e; }
+      .error { font: 12px monospace; fill: #e74c3c; }
+      .arrow { stroke: #3498db; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .box { fill: #ecf0f1; stroke: #bdc3c7; stroke-width: 2; rx: 8; }
+      .problem-box { fill: #ffebee; stroke: #f44336; stroke-width: 2; rx: 8; }
+      .root-box { fill: #fff3e0; stroke: #ff9800; stroke-width: 2; rx: 8; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3498db" />
+    </marker>
+  </defs>
+  
+  <text x="400" y="30" text-anchor="middle" class="title">问题演进：从表象到根本</text>
+  
+  <!-- Level 1: Surface Problem -->
+  <rect x="300" y="60" width="200" height="60" class="problem-box"/>
+  <text x="400" y="80" text-anchor="middle" class="subtitle">表层问题</text>
+  <text x="400" y="100" text-anchor="middle" class="error">max_tokens = 15000</text>
+  <text x="400" y="115" text-anchor="middle" class="error">超过 DeepSeek 限制 8192</text>
+  
+  <line x1="400" y1="130" x2="400" y2="160" class="arrow"/>
+  <text x="420" y="150" class="subtitle">深入分析</text>
+  
+  <!-- Level 2: Parameter Management -->
+  <rect x="300" y="170" width="200" height="60" class="box"/>
+  <text x="400" y="190" text-anchor="middle" class="subtitle">参数管理问题</text>
+  <text x="400" y="210" text-anchor="middle" class="subtitle">硬编码参数</text>
+  <text x="400" y="225" text-anchor="middle" class="subtitle">缺少模型适配</text>
+  
+  <line x1="400" y1="240" x2="400" y2="270" class="arrow"/>
+  <text x="420" y="260" class="subtitle">继续深入</text>
+  
+  <!-- Level 3: Context Management -->
+  <rect x="300" y="280" width="200" height="60" class="box"/>
+  <text x="400" y="300" text-anchor="middle" class="subtitle">上下文管理缺失</text>
+  <text x="400" y="320" text-anchor="middle" class="subtitle">无法处理长文本</text>
+  <text x="400" y="335" text-anchor="middle" class="subtitle">数据直接传递</text>
+  
+  <line x1="400" y1="350" x2="400" y2="380" class="arrow"/>
+  <text x="420" y="370" class="subtitle">根本原因</text>
+  
+  <!-- Level 4: Architecture Problem -->
+  <rect x="250" y="390" width="300" height="60" class="root-box"/>
+  <text x="400" y="410" text-anchor="middle" class="subtitle">架构设计问题</text>
+  <text x="400" y="430" text-anchor="middle" class="subtitle">Agent 直连 API，无抽象层</text>
+  
+  <!-- Side annotations -->
+  <text x="50" y="95" class="subtitle">❌ 症状</text>
+  <text x="50" y="205" class="subtitle">⚠️ 直接原因</text>
+  <text x="50" y="315" class="subtitle">🔍 深层原因</text>
+  <text x="50" y="425" class="subtitle">🎯 根本原因</text>
+</svg>

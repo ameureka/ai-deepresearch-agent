@@ -1,0 +1,89 @@
+<svg width="1000" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 18px sans-serif; fill: #2c3e50; }
+      .phase-title { font: bold 14px sans-serif; fill: white; }
+      .phase-subtitle { font: 12px sans-serif; fill: white; }
+      .timeline-text { font: 11px sans-serif; fill: #7f8c8d; }
+      .feature-text { font: 10px sans-serif; fill: white; }
+      .phase1 { fill: #3498db; stroke: #2980b9; stroke-width: 2; rx: 8; }
+      .phase2 { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; rx: 8; }
+      .phase3 { fill: #27ae60; stroke: #229954; stroke-width: 2; rx: 8; }
+      .arrow { stroke: #34495e; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .timeline { stroke: #bdc3c7; stroke-width: 2; }
+      .milestone { fill: #f39c12; stroke: #e67e22; stroke-width: 2; }
+    </style>
+    <marker id="arrowhead" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#34495e" />
+    </marker>
+  </defs>
+  
+  <text x="500" y="30" text-anchor="middle" class="title">分阶段实施路线图</text>
+  
+  <line x1="100" y1="80" x2="900" y2="80" class="timeline"/>
+  
+  <!-- Phase 1 -->
+  <rect x="80" y="100" width="200" height="120" class="phase1"/>
+  <text x="180" y="125" text-anchor="middle" class="phase-title">Phase 1: 止血求生</text>
+  <text x="180" y="145" text-anchor="middle" class="phase-subtitle">立即修复 + 分块处理</text>
+  
+  <text x="90" y="165" class="feature-text">✓ ModelAdapter</text>
+  <text x="90" y="180" class="feature-text">✓ 参数自动调整</text>
+  <text x="90" y="195" class="feature-text">✓ ChunkingProcessor</text>
+  <text x="90" y="210" class="feature-text">✓ 智能分块合并</text>
+  
+  <circle cx="180" cy="80" r="8" class="milestone"/>
+  <text x="180" y="70" text-anchor="middle" class="timeline-text">2-3 天</text>
+  <text x="180" y="250" text-anchor="middle" class="timeline-text">侵入性低</text>
+  <text x="180" y="265" text-anchor="middle" class="timeline-text">风险小</text>
+  <text x="180" y="280" text-anchor="middle" class="timeline-text">见效快</text>
+  
+  <line x1="290" y1="160" x2="350" y2="160" class="arrow"/>
+  
+  <!-- Phase 2 -->
+  <rect x="370" y="100" width="200" height="120" class="phase2"/>
+  <text x="470" y="125" text-anchor="middle" class="phase-title">Phase 2: 强身健体</text>
+  <text x="470" y="145" text-anchor="middle" class="phase-subtitle">摘要压缩</text>
+  
+  <text x="380" y="165" class="feature-text">✓ SummarizationCompressor</text>
+  <text x="380" y="180" class="feature-text">✓ 结构化摘要</text>
+  <text x="380" y="195" class="feature-text">✓ AgentPipeline</text>
+  <text x="380" y="210" class="feature-text">✓ 自动压缩传递</text>
+  
+  <circle cx="470" cy="80" r="8" class="milestone"/>
+  <text x="470" y="70" text-anchor="middle" class="timeline-text">1-2 周</text>
+  <text x="470" y="250" text-anchor="middle" class="timeline-text">Token 减少 50%+</text>
+  <text x="470" y="265" text-anchor="middle" class="timeline-text">成本进一步优化</text>
+  <text x="470" y="280" text-anchor="middle" class="timeline-text">处理速度提升</text>
+  
+  <line x1="580" y1="160" x2="640" y2="160" class="arrow"/>
+  
+  <!-- Phase 3+ -->
+  <rect x="660" y="100" width="200" height="120" class="phase3"/>
+  <text x="760" y="125" text-anchor="middle" class="phase-title">Phase 3+: 终极进化</text>
+  <text x="760" y="145" text-anchor="middle" class="phase-subtitle">外部记忆 (RAG)</text>
+  
+  <text x="670" y="165" class="feature-text">✓ VectorMemoryStore</text>
+  <text x="670" y="180" class="feature-text">✓ 分层记忆系统</text>
+  <text x="670" y="195" class="feature-text">✓ RAGEnhancedAgent</text>
+  <text x="670" y="210" class="feature-text">✓ 智能检索</text>
+  
+  <circle cx="760" cy="80" r="8" class="milestone"/>
+  <text x="760" y="70" text-anchor="middle" class="timeline-text">3-4 周</text>
+  <text x="760" y="250" text-anchor="middle" class="timeline-text">无限存储</text>
+  <text x="760" y="265" text-anchor="middle" class="timeline-text">跨会话记忆</text>
+  <text x="760" y="280" text-anchor="middle" class="timeline-text">智能检索</text>
+  
+  <!-- Key Insight -->
+  <rect x="200" y="320" width="600" height="50" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5"/>
+  <text x="500" y="340" text-anchor="middle" class="title" style="font-size: 14px; fill: #495057;">核心洞察</text>
+  <text x="500" y="360" text-anchor="middle" class="timeline-text" style="font-size: 12px;">我们不是选择"最好的"方案，而是选择"最合适当前阶段"的方案</text>
+  
+  <g transform="translate(100, 300)">
+    <text x="0" y="0" class="timeline-text" style="font-weight: bold;">分阶段优势:</text>
+    <text x="0" y="15" class="timeline-text">• 快速见效</text>
+    <text x="0" y="30" class="timeline-text">• 降低风险</text>
+    <text x="0" y="45" class="timeline-text">• 渐进改进</text>
+    <text x="0" y="60" class="timeline-text">• 团队可控</text>
+  </g>
+</svg>

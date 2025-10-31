@@ -1,0 +1,32 @@
+flowchart TD
+    Input[输入长文本] --> CheckLen{检查长度}
+    CheckLen -->|< 6K tokens| Direct[直接处理]
+    CheckLen -->|> 6K tokens| Split[语义分块]
+    
+    Split --> Chunk1[块 1<br/>+ 前后文]
+    Split --> Chunk2[块 2<br/>+ 前后文]
+    Split --> Chunk3[块 3<br/>+ 前后文]
+    Split --> ChunkN[块 N<br/>+ 前后文]
+    
+    Chunk1 --> Process1[处理块 1]
+    Chunk2 --> Process2[处理块 2]
+    Chunk3 --> Process3[处理块 3]
+    ChunkN --> ProcessN[处理块 N]
+    
+    Process1 --> Result1[结果 1]
+    Process2 --> Result2[结果 2]
+    Process3 --> Result3[结果 3]
+    ProcessN --> ResultN[结果 N]
+    
+    Result1 --> Merge[智能合并]
+    Result2 --> Merge
+    Result3 --> Merge
+    ResultN --> Merge
+    
+    Direct --> Output[输出结果]
+    Merge --> Output
+    
+    style Input fill:#e1f5ff
+    style Output fill:#c8e6c9
+    style Split fill:#fff9c4
+    style Merge fill:#fff9c4
