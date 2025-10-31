@@ -1,5 +1,7 @@
 # AI DeepResearch Agent
 
+English | [简体中文](./README.zh-CN.md)
+
 > 🚀 **Intelligent Research System** - Full-stack AI research platform with integrated Next.js frontend and FastAPI backend
 
 A production-ready AI research assistant featuring a modern Next.js frontend with real-time research progress tracking and a FastAPI backend powered by multiple specialized agents (Planner, Researcher, Writer, Editor).
