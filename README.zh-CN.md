@@ -20,7 +20,7 @@
 - **实时更新**：基于 SSE 的研究进度流式传输
 - **响应式设计**：移动优先，带有固定研究面板
 - **用户触发研究**：无缝的 AI 到研究工作流
-- **生产就绪**：Docker Compose 编排所有服务
+- **生产就绪**：Vercel 部署 + Python/Docker 后端 + Neon 数据库
 
 ### 🧠 智能上下文管理（第 1.5 阶段）
 - **无限长度**：处理任意长度的文本
@@ -75,10 +75,11 @@ ai-deepresearch-agent/
 
 ### 系统架构
 
+**开发环境：**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Next.js 前端（端口 3000）                    │
-│  - 现代化 React UI 配合 App Router                            │
+│         Next.js 前端（npm run dev / vercel dev）             │
+│  - 本地开发服务器（端口 3000）                                 │
 │  - 实时 SSE 流式传输（fetch-event-source）                    │
 │  - 带有固定定位的 ResearchPanel                               │
 │  - useResearchProgress Hook                                  │
@@ -86,15 +87,15 @@ ai-deepresearch-agent/
                          │ HTTP/SSE
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 FastAPI 后端（端口 8000）                     │
-│  - REST API 端点                                             │
-│  - SSE 研究流式传输（/api/research/stream）                   │
-│  - 后台任务管理                                               │
+│          FastAPI 后端（uvicorn --reload）                    │
+│  - Python 直接运行（端口 8000）- 推荐                         │
+│  - 或 Docker Compose（可选，低优先级）                        │
+│  - REST API + SSE 研究流式传输                               │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    多智能体工作流引擎                          │
+│              多智能体工作流引擎                                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   规划器     │→ │   研究员     │→ │   写作者     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
@@ -106,7 +107,7 @@ ai-deepresearch-agent/
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      API 集成层                              │
+│                 API 集成层                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  DeepSeek    │  │   OpenAI     │  │   Tavily     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
@@ -114,10 +115,37 @@ ai-deepresearch-agent/
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              PostgreSQL 数据库（端口 5432）                   │
+│         Neon PostgreSQL（SaaS - cloud.neon.tech）           │
+│  - 无服务器数据库，用于开发和生产环境                           │
 │  - 任务状态管理                                               │
 │  - 研究结果存储                                               │
-│  - 成本追踪记录                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**生产环境：**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Vercel 平台（Edge CDN）                         │
+│  - Next.js 15 部署                                           │
+│  - 全球边缘网络                                               │
+│  - 自动 HTTPS                                                │
+│  - URL：https://your-app.vercel.app                         │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTPS
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│          Render / 独立服务器                                 │
+│  - Python uvicorn 部署（推荐）                               │
+│  - 或 Docker 容器（可选）                                     │
+│  - URL：https://your-backend.onrender.com                   │
+└────────────────────────┬────────────────────────────────────┘
+                         │ SSL/TLS
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│            Neon PostgreSQL（生产环境）                        │
+│  - 无服务器 PostgreSQL，自动扩展                              │
+│  - 自动备份                                                   │
+│  - URL：postgresql://...@ep-xxx-prod.neon.tech/...         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -127,13 +155,14 @@ ai-deepresearch-agent/
 
 ### 前置要求
 
-- **Docker Desktop**（Windows/macOS）或 **Docker Engine**（Linux）
+- **Python 3.11+** 和 **Node.js 18+**
+- **Neon 账号** - 免费的无服务器 PostgreSQL（[注册](https://neon.tech)）
 - **API 密钥**：
   - [DeepSeek API 密钥](https://platform.deepseek.com/)
   - [OpenAI API 密钥](https://platform.openai.com/)
   - [Tavily API 密钥](https://tavily.com/)
 
-### 方法 A：Docker Compose（推荐）
+### 方法 A：自动化安装（推荐）
 
 #### 1. 克隆仓库
 
@@ -142,101 +171,100 @@ git clone https://github.com/ameureka/ai-deepresearch-agent.git
 cd ai-deepresearch-agent
 ```
 
-#### 2. 配置环境
+#### 2. 设置 Neon 数据库
+
+1. 访问 https://neon.tech 并创建免费账号
+2. 创建新项目（例如：`ai-research-dev`）
+3. 复制连接字符串（格式类似：`postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require`）
+
+#### 3. 配置环境
 
 ```bash
-# 创建 .env 文件
+# 后端环境
 cp .env.example .env
+nano .env  # 添加你的 API 密钥和 Neon DATABASE_URL
 
-# 使用你的 API 密钥编辑 .env
-nano .env
+# 前端环境
+cp ai-chatbot-main/.env.local.example ai-chatbot-main/.env.local
+nano ai-chatbot-main/.env.local  # 添加 POSTGRES_URL 和后端 API URL
 ```
 
 必需的环境变量：
 
+**.env（后端）：**
 ```bash
 # API 密钥
 DEEPSEEK_API_KEY=sk-your-deepseek-key
 OPENAI_API_KEY=sk-your-openai-key
 TAVILY_API_KEY=tvly-your-tavily-key
 
-# 数据库（Docker 中的 PostgreSQL）
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+# 数据库（Neon SaaS - 开发和生产环境通用）
+DATABASE_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
+
+# 服务器配置
+HOST=0.0.0.0
+PORT=8000
+```
+
+**ai-chatbot-main/.env.local（前端）：**
+```bash
+# 数据库（与后端相同的 Neon 连接）
+POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
+
+# 后端 API
+RESEARCH_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # 认证
-AUTH_SECRET=your-random-secret-key
+AUTH_SECRET=your-random-secret-min-32-chars
 ```
 
-#### 3. 启动所有服务
+#### 4. 运行自动化设置
 
 ```bash
-# 构建并启动所有服务
-docker-compose up -d
+# 设置后端（创建 venv，安装依赖）
+./scripts/setup-backend.sh
 
-# 查看日志
-docker-compose logs -f
+# 设置前端（安装 npm 包）
+./scripts/setup-frontend.sh
 
-# 检查状态
-docker-compose ps
+# 启动所有服务（前端 + 后端）
+./scripts/dev.sh
 ```
 
-#### 4. 访问应用
-
-- **前端**：http://localhost:3000
-- **后端 API**：http://localhost:8000/docs
-- **健康检查**：http://localhost:8000/health
+这将启动：
+- **前端**：http://localhost:3000（Vercel Dev / npm run dev）
+- **后端**：http://localhost:8000（Python uvicorn）
+- **数据库**：Neon SaaS（无需本地设置！）
 
 #### 5. 停止服务
 
 ```bash
-docker-compose down        # 停止服务
-docker-compose down -v     # 停止并删除卷
+# 在另一个终端中
+./scripts/stop-dev.sh
 ```
 
-### 方法 B：直接运行（开发模式）
+### 方法 B：Docker Compose（可选 - 仅后端）
 
-#### 终端 1：PostgreSQL
+⚠️ **注意**：Docker 是可选的，仅用于后端部署（低优先级）。前端始终使用 Vercel。
 
 ```bash
-# 安装 PostgreSQL（macOS）
-brew install postgresql@15
-brew services start postgresql@15
+# 在 Docker 中启动后端 + PostgreSQL（用于测试）
+docker-compose up -d backend postgres
 
-# 创建数据库
-psql postgres -c "CREATE DATABASE ai_research;"
+# 前端仍然使用 npm 运行
+cd ai-chatbot-main && npm run dev
 ```
 
-#### 终端 2：FastAPI 后端
+详见 [docker-compose.yml](./docker-compose.yml) 了解警告和详细配置。
 
-```bash
-# 安装 Python 依赖
-pip install -r requirements.txt
+### 方法 C：手动设置（高级）
 
-# 配置环境
-export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_research
-export DEEPSEEK_API_KEY=sk-your-key
-export TAVILY_API_KEY=tvly-your-key
-
-# 启动后端
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-#### 终端 3：Next.js 前端
-
-```bash
-# 安装 Node.js 依赖
-cd ai-chatbot-main
-npm install
-
-# 配置环境
-cp .env.example .env.local
-# 使用你的 API 密钥编辑 .env.local
-
-# 启动前端
-npm run dev
-```
-
-访问：http://localhost:3000
+要完全手动控制，请参阅[本地开发指南](./docs/LOCAL_DEVELOPMENT.md)获取详细说明，包括：
+- 手动虚拟环境设置
+- Neon 数据库配置
+- 单个服务启动
+- 故障排查提示
 
 ---
 
@@ -342,8 +370,8 @@ OPENAI_API_KEY=sk-your-key
 TAVILY_API_KEY=tvly-your-key
 SERPER_API_KEY=your-key（可选）
 
-# 数据库
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+# 数据库（Neon SaaS - 推荐用于开发和生产环境）
+DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
 
 # 模型选择
 PLANNER_MODEL=deepseek:deepseek-reasoner
@@ -357,20 +385,30 @@ ENABLE_CHUNKING=true
 CHUNKING_THRESHOLD=0.8
 MAX_CHUNK_SIZE=6000
 CHUNK_OVERLAP=200
+
+# 服务器配置
+HOST=0.0.0.0
+PORT=8000
+LOG_LEVEL=INFO
 ```
 
 ### 前端配置（.env.local）
 
 ```bash
+# 数据库（与后端相同的 Neon 连接）
+POSTGRES_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
+
 # 后端 API
-NEXT_PUBLIC_API_URL=http://localhost:8000
+RESEARCH_API_URL=http://localhost:8000       # 服务器端
+NEXT_PUBLIC_API_URL=http://localhost:8000    # 客户端
 
 # 认证
-AUTH_SECRET=your-secret-key
+AUTH_SECRET=your-random-secret-min-32-chars
 AUTH_URL=http://localhost:3000/api/auth
 
-# AI SDK
-OPENAI_API_KEY=sk-your-key
+# Vercel 服务（可选）
+BLOB_READ_WRITE_TOKEN=vercel_blob_xxx
+AI_GATEWAY_API_KEY=vercel_ag_xxx
 
 # Node 环境
 NODE_ENV=development
@@ -402,12 +440,18 @@ NODE_ENV=development
 
 ## 🔄 版本历史
 
-### v0.2.0 - 第 4 阶段部署（2025-10-31）
+### v0.2.0 - 第 4 阶段部署（2025-11-01）
 - ✅ Monorepo 结构（前端 + 后端同级）
-- ✅ Docker Compose 多服务编排
-- ✅ 生产就绪配置
+- ✅ **架构说明**：
+  - 前端：Vercel 部署（不使用 Docker）
+  - 后端：Python 直接运行（推荐）或 Docker（可选）
+  - 数据库：Neon PostgreSQL SaaS（开发和生产环境统一）
+- ✅ 自动化设置脚本（setup-backend.sh、setup-frontend.sh、dev.sh）
+- ✅ 生产环境部署指南（Vercel + Render/服务器 + Neon）
+- ✅ 完整的环境变量文档
+- ✅ 支持 Vercel Dev 的本地开发指南
 - ✅ 更新第 4 阶段的 .gitignore
-- ✅ 统一 README 文档
+- ✅ 全面的 README 文档
 
 ### v0.1.5 - 第 3 阶段前端集成（2025-10-31）
 - ✅ ResearchButton、ResearchPanel、ResearchProgress 组件
@@ -449,49 +493,50 @@ NODE_ENV=development
 - ReDoc：http://localhost:8000/redoc
 
 ### 开发指南
-- [Docker Compose 设置](./.kiro/specs/phase4-deployment/design.md)
-- [E2E 测试指南](./.kiro/specs/phase4-deployment/requirements.md)
-- [部署检查清单](./.kiro/specs/phase4-deployment/tasks.md)
+- 💻 [本地开发指南](./docs/LOCAL_DEVELOPMENT.md) - **完整的设置和工作流程**
+- 🔧 [环境变量指南](./docs/ENVIRONMENT_VARIABLES.md)
+- 🗄️ [数据库配置](./docs/DATABASE_CONFIGURATION.md)
+- 🐳 [Docker Compose 设置（可选）](./.kiro/specs/phase4-deployment/design.md) - 仅后端，低优先级
+- 🧪 [E2E 测试指南](./.kiro/specs/phase4-deployment/requirements.md)
+- ✅ [部署检查清单](./.kiro/specs/phase4-deployment/tasks.md)
+
+### 部署指南
+- 🚀 [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT.md) - **前端部署（Vercel 平台）**
+- 🌐 [生产环境部署指南](./docs/PRODUCTION_DEPLOYMENT.md) - **完整的生产环境设置**
+  - 前端：Vercel
+  - 后端：Render 或独立服务器（Python uvicorn）
+  - 数据库：Neon PostgreSQL SaaS
 
 ---
 
 ## 🐛 故障排除
 
-### Docker Compose 问题
+### 后端问题
 
 ```bash
-# 检查服务状态
-docker-compose ps
+# 检查 Python 版本
+python --version  # 应该是 3.11+
 
-# 查看日志
-docker-compose logs -f [service_name]
+# 重新创建虚拟环境
+rm -rf venv
+python -m venv venv
+source venv/bin/activate  # Windows：venv\Scripts\activate
+pip install -r requirements.txt
 
-# 重建服务
-docker-compose build --no-cache
+# 检查后端是否运行
+curl http://localhost:8000/health
 
-# 重置所有内容
-docker-compose down -v
-docker-compose up -d --build
+# 查看后端日志
+# 检查运行 uvicorn 的终端
 ```
 
-### 数据库连接问题
-
-```bash
-# 检查 PostgreSQL 状态
-docker-compose exec postgres pg_isready
-
-# 访问 PostgreSQL shell
-docker-compose exec postgres psql -U postgres -d ai_research
-
-# 重置数据库
-docker-compose down -v
-docker-compose up -d postgres
-```
-
-### 前端构建问题
+### 前端问题
 
 ```bash
 cd ai-chatbot-main
+
+# 检查 Node 版本
+node --version  # 应该是 18+
 
 # 清除 Next.js 缓存
 rm -rf .next
@@ -502,7 +547,72 @@ npm install
 
 # 重新构建
 npm run build
+
+# 在开发模式下测试
+npm run dev
 ```
+
+### 数据库连接问题（Neon）
+
+```bash
+# 手动测试连接
+psql "postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require"
+
+# 常见问题：
+# 1. 检查 DATABASE_URL 是否包含 ?sslmode=require
+# 2. 验证 Neon 数据库未暂停（免费层会自动暂停）
+# 3. 检查 Neon 控制台中的 IP 允许列表（如果已配置）
+# 4. 确保连接字符串有正确的密码（没有特殊字符问题）
+```
+
+### Docker Compose 问题（如果使用可选 Docker）
+
+⚠️ **注意**：Docker 仅适用于后端（可选）。前端不应使用 Docker。
+
+```bash
+# 检查后端服务状态
+docker-compose ps
+
+# 查看后端日志
+docker-compose logs -f backend
+
+# 仅重建后端
+docker-compose build --no-cache backend
+
+# 重置后端
+docker-compose down
+docker-compose up -d backend
+
+# 前端仍使用 npm 运行（不使用 Docker）
+cd ai-chatbot-main && npm run dev
+```
+
+### 常见问题
+
+**问题**："无法连接到后端 API"
+- **解决方案**：确保后端在 8000 端口运行，并且设置了 `NEXT_PUBLIC_API_URL=http://localhost:8000`
+
+**问题**："数据库连接超时"
+- **解决方案**：检查 Neon 数据库状态（可能已暂停），验证连接字符串格式
+
+**问题**："Module not found" 错误
+- **解决方案**：运行 `pip install -r requirements.txt`（后端）或 `npm install`（前端）
+
+**问题**："端口已被使用"
+- **解决方案**：检查哪个进程在使用该端口：
+  ```bash
+  # macOS/Linux
+  lsof -i :8000  # 后端
+  lsof -i :3000  # 前端
+
+  # Windows
+  netstat -ano | findstr :8000
+  ```
+
+有关更详细的故障排除，请参阅：
+- [本地开发指南](./docs/LOCAL_DEVELOPMENT.md#troubleshooting)
+- [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT.md#故障排查)
+- [生产环境部署指南](./docs/PRODUCTION_DEPLOYMENT.md#故障排查)
 
 ---
 
@@ -551,4 +661,4 @@ npm run build
 
 **由 AI DeepResearch 团队用 ❤️ 制作**
 
-**版本**：0.2.0（第 4 阶段）| **最后更新**：2025-10-31
+**版本**：0.2.0（第 4 阶段）| **最后更新**：2025-11-01

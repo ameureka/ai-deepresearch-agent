@@ -10,6 +10,22 @@
 
 ---
 
+## ⚠️ 重要说明：Docker Compose 仅用于本地开发
+
+**本文档中的 Docker Compose 配置仅用于本地开发环境，不用于生产部署。**
+
+**正确的架构：**
+- **Frontend**: Vercel（本地开发使用 Vercel Dev，生产使用 Vercel 平台）- **不使用 Docker**
+- **Backend**: Python 直接运行（推荐）或 Docker（可选，仅后端，低优先级）
+- **Database**: Neon SaaS（本地和生产环境统一使用）
+
+**Docker Compose 的作用：**
+- 仅用于本地开发环境的可选方案
+- 仅容器化后端服务（如果选择使用）
+- PostgreSQL 也推荐直接使用 Neon（本地和生产统一）
+
+---
+
 ## 概述
 
 Phase 4 的目标是完成项目整合，实现本地联调和生产部署。本文档描述了项目结构、环境配置、部署架构和实施策略。
@@ -17,17 +33,18 @@ Phase 4 的目标是完成项目整合，实现本地联调和生产部署。本
 ### 核心目标
 
 1. 整合前后端代码到统一的 monorepo
-2. 配置本地开发环境（直接运行 + Docker）
-3. 部署到生产环境（Render + Vercel + Neon）
+2. 配置本地开发环境（**推荐：Vercel Dev + Python 直接运行**）
+3. 部署到生产环境（**Vercel 前端 + Render/Python 后端 + Neon 数据库**）
 4. 配置防休眠、监控和日志
 5. 完成端到端测试和验收
 
 ### 设计原则
 
-- **简单优先**: 直接运行优于 Docker，免费层优于付费
+- **简单优先**: Vercel + Python 直接运行优于 Docker，免费层优于付费
 - **渐进式**: 先本地联调，再部署生产
 - **可回滚**: 保持 Git 历史，支持快速回滚
 - **文档化**: 每个步骤都有详细文档
+- **前端部署**: **始终使用 Vercel**，不使用 Docker
 
 ---
 
@@ -55,11 +72,13 @@ agentic-ai-public-main/
 │   ├── .env.example       # 前端环境变量示例
 │   └── package.json
 │
-├── docker-compose.yml      # 本地开发（可选）
-├── Dockerfile.backend      # 后端 Docker 镜像
+├── docker-compose.yml      # 本地开发（可选，仅后端）
+├── Dockerfile.backend      # 后端 Docker 镜像（可选）
 ├── .env.local             # 本地环境变量（不提交）
 ├── .gitignore
 └── README.md              # 统一文档
+
+**注意**: 前端始终使用 Vercel Dev（本地）和 Vercel（生产），不使用 Docker
 ```
 
 #### 设计决策
@@ -200,36 +219,32 @@ echo "✨ 环境变量检查完成！"
 
 ### 3. 本地开发环境设计
 
-#### 方案 A: 直接运行（推荐）
+#### 方案 A: Vercel Dev + Python 直接运行（强烈推荐）
 
 **优点**:
-- ✅ 更简单，不需要 Docker
-- ✅ 开发方便，代码热重载
+- ✅ 最简单，与生产环境一致（前端使用 Vercel）
+- ✅ 代码热重载，开发体验好
 - ✅ 调试容易
 - ✅ 资源占用少
+- ✅ 不需要 Docker
 
 **缺点**:
-- 🟡 需要手动启动多个终端
-- 🟡 需要本地安装 Python、Node.js、PostgreSQL
+- 🟡 需要手动启动两个终端
+- 🟡 需要本地安装 Python 和 Node.js
 
 **启动步骤**:
 ```bash
-# Terminal 1: 启动 PostgreSQL（可选，或用 Neon）
-docker run -d \
-  --name postgres \
-  -e POSTGRES_PASSWORD=local \
-  -p 5432:5432 \
-  postgres:15
-
-# Terminal 2: 启动 FastAPI
+# Terminal 1: 启动 FastAPI 后端
 cd agentic-ai-public-main
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 
-# Terminal 3: 启动 Next.js
+# Terminal 2: 启动 Next.js 前端（使用 Vercel Dev）
 cd ai-chatbot-main
 npm install
 npm run dev
+# 或者使用 Vercel CLI（更接近生产环境）：
+# vercel dev
 
 # 访问
 # 前端: http://localhost:3000
@@ -237,42 +252,28 @@ npm run dev
 # API 文档: http://localhost:8000/docs
 ```
 
-#### 方案 B: Docker Compose（可选）
+**数据库**: 直接使用 Neon（本地和生产统一，无需本地 PostgreSQL）
+
+#### 方案 B: Docker（可选，仅后端，低优先级）
+
+**⚠️ 重要**: Docker 仅用于后端容器化，前端始终使用 Vercel Dev
 
 **优点**:
-- ✅ 一键启动所有服务
-- ✅ 环境统一
-- ✅ 便于新人上手
+- ✅ 后端环境隔离
+- ✅ 便于部署到支持 Docker 的平台
 
 **缺点**:
 - 🟡 需要学习 Docker
-- 🟡 资源占用多
+- 🟡 资源占用较多
 - 🟡 调试相对复杂
+- 🟡 不推荐用于本地开发
 
-**docker-compose.yml**:
+**docker-compose.yml**（仅容器化后端）:
 ```yaml
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
-  postgres:
-    image: postgres:15
-    container_name: research-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: local
-      POSTGRES_DB: research
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # FastAPI 后端
+  # FastAPI 后端（可选）
   backend:
     build:
       context: .
@@ -281,62 +282,43 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:local@postgres:5432/research
+      - DATABASE_URL=${DATABASE_URL}  # 使用 Neon
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - TAVILY_API_KEY=${TAVILY_API_KEY}
       - ALLOWED_ORIGINS=http://localhost:3000
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./src:/app/src
       - ./main.py:/app/main.py
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Next.js 前端
-  frontend:
-    build:
-      context: ./ai-chatbot-main
-      dockerfile: Dockerfile
-    container_name: research-frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:local@postgres:5432/research
-      - RESEARCH_API_URL=http://backend:8000
-      - NEXTAUTH_URL=http://localhost:3000
-      - AUTH_SECRET=local-dev-secret
-    depends_on:
-      - backend
-    volumes:
-      - ./ai-chatbot-main:/app
-      - /app/node_modules
-      - /app/.next
-    command: npm run dev
-
-volumes:
-  postgres_data:
+# 注意：
+# - 不容器化前端，前端始终使用 Vercel Dev
+# - 不容器化数据库，统一使用 Neon
+# - 仅在需要时容器化后端
 ```
 
 **启动命令**:
 ```bash
-# 启动所有服务
-docker-compose up -d
+# 启动后端容器（可选）
+docker-compose up -d backend
+
+# 在另一个终端启动前端（使用 Vercel Dev）
+cd ai-chatbot-main
+npm run dev
 
 # 查看日志
-docker-compose logs -f
+docker-compose logs -f backend
 
-# 停止所有服务
+# 停止服务
 docker-compose down
-
-# 重启服务
-docker-compose restart backend
 ```
 
 ### 4. Dockerfile 设计
 
-#### Dockerfile.backend (FastAPI)
+#### Dockerfile.backend (FastAPI) - 可选，低优先级
+
+**⚠️ 注意**: 后端推荐直接使用 Python 运行，Docker 是可选方案
 
 ```dockerfile
 FROM python:3.11-slim
@@ -376,45 +358,20 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - 健康检查
 - 不使用 root 用户（生产环境）
 
-#### Dockerfile (Next.js)
+#### ~~Dockerfile (Next.js)~~ - 已移除
 
-```dockerfile
-FROM node:18-alpine AS base
+**⚠️ 重要**: 前端不使用 Docker，始终使用 Vercel
 
-# 安装依赖
-FROM base AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+**本地开发**: 使用 `npm run dev` 或 `vercel dev`
+**生产部署**: 使用 Vercel 平台自动构建和部署
 
-# 构建应用
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build
-
-# 生产镜像
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-CMD ["node", "server.js"]
-```
+Vercel 会自动处理：
+- 依赖安装
+- 构建优化
+- 静态资源托管
+- SSR/SSG
+- Edge Functions
+- CDN 分发
 
 ---
 
@@ -431,17 +388,18 @@ CMD ["node", "server.js"]
                  ▼
 ┌─────────────────────────────────────────────────────────┐
 │              Vercel (Next.js 前端)                       │
-│  - 静态资源托管                                          │
-│  - SSR/SSG                                              │
+│  - 静态资源托管 + SSR/SSG                                │
 │  - Edge Functions                                       │
-│  - 自动 HTTPS                                           │
+│  - 自动 HTTPS + CDN                                     │
+│  - 自动构建和部署                                        │
+│  ⚠️ 不使用 Docker，使用 Vercel 原生构建                │
 └────────────────┬────────────────────────────────────────┘
                  │
                  │ HTTPS (CORS)
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Render (FastAPI 后端)                       │
-│  - Docker 容器                                          │
+│        Render (FastAPI 后端) 或 Python 直接部署          │
+│  - Python 直接运行（推荐）或 Docker 容器（可选）         │
 │  - 健康检查                                             │
 │  - 自动 HTTPS                                           │
 │  - 防休眠 (cron-job.org)                                │
@@ -450,12 +408,18 @@ CMD ["node", "server.js"]
                  │ SSL
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Neon (PostgreSQL)                          │
-│  - 托管数据库                                           │
+│              Neon (PostgreSQL SaaS)                     │
+│  - 托管数据库（本地和生产统一）                          │
 │  - 自动备份                                             │
 │  - SSL 连接                                             │
+│  - 本地开发也使用 Neon                                   │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**关键架构决策**:
+- ✅ **Frontend**: 始终使用 Vercel（本地 + 生产）
+- ✅ **Backend**: Python 直接运行优先，Docker 可选
+- ✅ **Database**: Neon SaaS（本地和生产统一）
 
 ### 2. 数据库部署设计
 

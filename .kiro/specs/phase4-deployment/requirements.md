@@ -63,45 +63,47 @@
 5. THE System SHALL 提供环境变量检查脚本
 6. THE System SHALL 在 README 中说明环境变量配置
 
-### Requirement 3: 本地开发环境（直接运行）
+### Requirement 3: 本地开发环境（Vercel Dev + Python）
 
-**用户故事**: 作为开发者，我希望能够直接运行项目，不依赖 Docker
+**用户故事**: 作为开发者，我希望使用 Vercel Dev + Python 直接运行项目，与生产环境保持一致
 
 #### 验收标准
 
-1. THE System SHALL 支持在 Terminal 1 启动 FastAPI
-2. THE System SHALL 支持在 Terminal 2 启动 Next.js
-3. THE System SHALL 支持在 Terminal 3 启动 PostgreSQL（可选）
+1. THE System SHALL 支持在 Terminal 1 启动 FastAPI 后端
+2. THE System SHALL 支持在 Terminal 2 启动 Next.js 前端（使用 Vercel Dev）
+3. THE System SHALL 使用 Neon 数据库（本地和生产统一）
 4. THE System SHALL 在 README 中提供启动命令
 5. THE System SHALL 验证前后端可以通信
 6. THE System SHALL 验证数据库连接正常
+7. THE System SHALL 不依赖本地 PostgreSQL（统一使用 Neon）
 
-### Requirement 4: 本地开发环境（Docker Compose）
+### Requirement 4: Docker 支持（可选，仅后端，低优先级）
 
-**用户故事**: 作为开发者，我希望能够使用 Docker Compose 一键启动，以便统一环境
-
-#### 验收标准
-
-1. THE System SHALL 提供 docker-compose.yml 文件
-2. THE System SHALL 定义 postgres 服务
-3. THE System SHALL 定义 backend 服务
-4. THE System SHALL 定义 frontend 服务
-5. THE System SHALL 配置服务依赖关系
-6. THE System SHALL 配置卷挂载（代码热重载）
-7. THE System SHALL 支持 `docker-compose up -d` 一键启动
-
-### Requirement 5: Dockerfile 配置
-
-**用户故事**: 作为运维人员，我希望有标准的 Dockerfile，以便容器化部署
+**用户故事**: 作为开发者，我希望能够使用 Docker 容器化后端（可选），但前端始终使用 Vercel
 
 #### 验收标准
 
-1. THE System SHALL 提供 Dockerfile.backend（FastAPI）
+1. THE System SHALL 提供 docker-compose.yml 文件（可选）
+2. THE System SHALL 仅容器化后端服务（不容器化前端）
+3. THE System SHALL 使用 Neon 数据库（不容器化 PostgreSQL）
+4. THE System SHALL 配置后端卷挂载（代码热重载）
+5. THE System SHALL 支持 `docker-compose up -d backend` 启动后端
+6. THE System SHALL 在文档中说明 Docker 是可选方案
+7. THE System SHALL 强调前端始终使用 Vercel Dev
+
+### Requirement 5: Dockerfile 配置（可选，仅后端）
+
+**用户故事**: 作为运维人员，我希望有后端 Dockerfile（可选），但前端不使用 Docker
+
+#### 验收标准
+
+1. THE System SHALL 提供 Dockerfile.backend（FastAPI，可选）
 2. THE System SHALL 使用 Python 3.11-slim 基础镜像
 3. THE System SHALL 安装所有依赖
 4. THE System SHALL 暴露 8000 端口
 5. THE System SHALL 使用 uvicorn 启动应用
 6. THE System SHALL 优化镜像大小（< 500MB）
+7. THE System SHALL 不提供前端 Dockerfile（前端使用 Vercel）
 
 ### Requirement 6: 数据库部署
 
@@ -129,18 +131,20 @@
 5. THE System SHALL 部署成功并获取 URL
 6. THE System SHALL 通过健康检查验证
 
-### Requirement 8: 前端部署到 Vercel
+### Requirement 8: 前端部署到 Vercel（生产环境）
 
-**用户故事**: 作为运维人员，我希望部署 Next.js 前端到 Vercel
+**用户故事**: 作为运维人员，我希望部署 Next.js 前端到 Vercel，并在本地开发也使用 Vercel Dev
 
 #### 验收标准
 
-1. THE System SHALL 使用 Vercel CLI 部署
+1. THE System SHALL 使用 Vercel CLI 部署到生产环境
 2. THE System SHALL 配置所有必需的环境变量
 3. THE System SHALL 配置 RESEARCH_API_URL 指向 Render
 4. THE System SHALL 配置 DATABASE_URL 指向 Neon
 5. THE System SHALL 部署成功并获取 URL
 6. THE System SHALL 验证前端可以访问
+7. THE System SHALL 在本地开发使用 `npm run dev` 或 `vercel dev`
+8. THE System SHALL 不使用 Docker 容器化前端
 
 ### Requirement 9: CORS 配置
 

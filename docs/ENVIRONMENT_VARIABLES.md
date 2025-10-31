@@ -54,6 +54,8 @@ nano .env.local
 
 ## Backend Variables
 
+**适用场景：** Python 直接运行（推荐）或 Docker 运行（可选）
+
 ### Required Variables
 
 These variables MUST be configured for the application to function:
@@ -70,7 +72,7 @@ These variables MUST be configured for the application to function:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/dbname` |
+| `DATABASE_URL` | PostgreSQL connection string (推荐使用 Neon) | `postgresql://user:pass@host:5432/dbname` |
 
 ### Optional Variables
 
@@ -119,41 +121,83 @@ These variables have default values but can be customized:
 
 ---
 
-## Frontend Variables
+## Vercel 环境变量配置
 
-### Required Variables
+**适用场景：** 前端部署到 Vercel（本地 `npm run dev` 和生产环境）
 
-#### Database
+### 本地开发（Vercel Dev）
+
+配置文件位置：`ai-chatbot-main/.env.local`
+
+#### Required Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `POSTGRES_URL` | PostgreSQL connection string (same as backend) | `postgresql://user:pass@host:5432/dbname` |
+| `POSTGRES_URL` | PostgreSQL connection string（推荐使用 Neon 开发数据库） | `postgresql://user:pass@ep-xxx-dev.neon.tech/dev_db?sslmode=require` |
+| `AUTH_SECRET` | Random secret key for auth | Generate: `openssl rand -base64 32` |
 
-#### Authentication
-
-| Variable | Description | How to Generate |
-|----------|-------------|-----------------|
-| `AUTH_SECRET` | Random secret key for auth | `openssl rand -base64 32` |
-
-### Optional Variables
-
-#### Research API (Phase 3)
+#### Backend API Connection
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `RESEARCH_API_URL` | `http://localhost:8000` | FastAPI backend URL (server-side) |
-| `NEXT_PUBLIC_API_URL` | - | Public API URL (browser-side) |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Public API URL (browser-side) |
 
-#### Storage (Vercel)
+#### Optional Features
+
+| Variable | Description |
+|----------|-------------|
+| `NODE_ENV` | Node environment (development) |
+| `NEXTAUTH_URL` | Auth callback URL (http://localhost:3000) |
+
+**示例配置文件 `ai-chatbot-main/.env.local`：**
+
+```bash
+# Database (Neon - 开发数据库)
+POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/dev_db?sslmode=require
+
+# Auth
+AUTH_SECRET=your-generated-secret-here
+NEXTAUTH_URL=http://localhost:3000
+
+# Backend API (本地 Python 后端)
+RESEARCH_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Development
+NODE_ENV=development
+```
+
+**重要说明：**
+- 本地开发和生产环境都使用 Neon 数据库
+- 使用不同的 Neon 数据库：开发环境和生产环境分开
+- 后端 API 本地开发时指向 `http://localhost:8000`（Python 直接运行）
+
+### Vercel 生产环境配置
+
+在 Vercel Dashboard 中配置环境变量：
+**Vercel Dashboard → Project → Settings → Environment Variables**
+
+#### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `POSTGRES_URL` | PostgreSQL connection string（使用 Neon 生产数据库） | `postgresql://user:pass@ep-xxx-prod.neon.tech/prod_db?sslmode=require` |
+| `AUTH_SECRET` | Random secret key for auth（与开发环境不同） | Generate new: `openssl rand -base64 32` |
+| `AUTH_URL` | Auth callback URL | `https://your-app.vercel.app/api/auth` |
+
+#### Backend API Connection
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `RESEARCH_API_URL` | FastAPI backend URL (server-side) | `https://your-backend.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | Public API URL (browser-side) | `https://your-backend.onrender.com` |
+
+#### Optional Vercel Services
 
 | Variable | Description | Where to Get |
 |----------|-------------|--------------|
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token | [Vercel Dashboard](https://vercel.com/docs/storage/vercel-blob) |
-
-#### AI Gateway (Vercel)
-
-| Variable | Description | Where to Get |
-|----------|-------------|--------------|
 | `AI_GATEWAY_API_KEY` | Vercel AI Gateway key | [Vercel Dashboard](https://vercel.com/ai-gateway) |
 
 #### Optional Features
@@ -162,14 +206,32 @@ These variables have default values but can be customized:
 |----------|-------------|
 | `REDIS_URL` | Redis connection string for rate limiting |
 | `OPENAI_API_KEY` | OpenAI key for frontend AI features |
-| `NODE_ENV` | Node environment (development/production) |
-| `NEXTAUTH_URL` | Auth callback URL |
+| `NODE_ENV` | Node environment (production) |
+
+**配置步骤：**
+
+1. 登录 Vercel Dashboard
+2. 选择项目 → Settings → Environment Variables
+3. 添加以下环境变量（每个环境都需要配置）：
+   - Production
+   - Preview (可选)
+   - Development (可选，通常使用本地 .env.local)
+
+**重要说明：**
+- 生产环境使用 Neon 生产数据库（与开发环境分开）
+- 后端 API 指向 Render 或其他云服务部署的 Python 后端
+- 所有敏感信息都通过 Vercel Dashboard 配置，不要提交到代码库
 
 ---
 
 ## Environment-Specific Configuration
 
 ### Local Development
+
+**推荐架构：**
+- Frontend: Vercel (本地 `npm run dev`)
+- Backend: Python 直接运行（推荐）
+- Database: Neon SaaS（开发数据库）
 
 #### Terminal 1: Backend (.env)
 
@@ -179,8 +241,8 @@ DEEPSEEK_API_KEY=sk-your-deepseek-key
 OPENAI_API_KEY=sk-your-openai-key
 TAVILY_API_KEY=tvly-your-tavily-key
 
-# Database (local PostgreSQL or Neon)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_research
+# Database (推荐使用 Neon 开发数据库)
+DATABASE_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/dev_db?sslmode=require
 
 # Server
 HOST=0.0.0.0
@@ -198,14 +260,14 @@ ENV=development
 #### Terminal 2: Frontend (ai-chatbot-main/.env.local)
 
 ```bash
-# Database (same as backend)
-POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/ai_research
+# Database (推荐使用 Neon 开发数据库，与后端相同)
+POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/dev_db?sslmode=require
 
 # Auth
 AUTH_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_URL=http://localhost:3000
 
-# Research API
+# Research API (连接到本地 Python 后端)
 RESEARCH_API_URL=http://localhost:8000
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
@@ -217,7 +279,14 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 NODE_ENV=development
 ```
 
-### Docker Compose
+**重要说明：**
+- 本地和生产环境都使用 Neon 数据库（不同数据库实例）
+- Backend 推荐 Python 直接运行，Docker 为可选方式
+- 前后端使用相同的 Neon 开发数据库连接字符串
+
+### Docker Compose（可选）
+
+**注意：** Docker 部署为可选方式，推荐使用 Python 直接运行后端
 
 Environment variables are defined in `docker-compose.yml`:
 
@@ -225,6 +294,7 @@ Environment variables are defined in `docker-compose.yml`:
 services:
   backend:
     environment:
+      # 可以使用 Neon 或本地 PostgreSQL
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_research
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -239,6 +309,11 @@ services:
 
 ### Production (Render + Vercel + Neon)
 
+**推荐架构：**
+- Frontend: Vercel (生产部署)
+- Backend: Python on Render（推荐）或 Docker（可选）
+- Database: Neon SaaS（生产数据库，与开发数据库分离）
+
 #### Render (Backend)
 
 Set in Render dashboard → Environment:
@@ -249,8 +324,8 @@ DEEPSEEK_API_KEY=sk-your-key
 OPENAI_API_KEY=sk-your-key
 TAVILY_API_KEY=tvly-your-key
 
-# Database (Neon)
-DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require
+# Database (Neon 生产数据库)
+DATABASE_URL=postgresql://user:pass@ep-xxx-prod.neon.tech/prod_db?sslmode=require
 
 # Server
 HOST=0.0.0.0
@@ -265,13 +340,18 @@ ENV=production
 LOG_LEVEL=INFO
 ```
 
+**重要说明：**
+- 使用 Neon 生产数据库（与开发环境分离）
+- Backend 推荐 Python 直接运行，Docker 为可选方式
+- CORS 必须配置 Vercel 前端域名
+
 #### Vercel (Frontend)
 
 Set in Vercel project → Settings → Environment Variables:
 
 ```bash
-# Database (Neon)
-POSTGRES_URL=postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require
+# Database (Neon 生产数据库，与后端相同)
+POSTGRES_URL=postgresql://user:pass@ep-xxx-prod.neon.tech/prod_db?sslmode=require
 
 # Auth
 AUTH_SECRET=<your-random-secret>
@@ -288,6 +368,11 @@ AI_GATEWAY_API_KEY=<from-vercel>
 # Production
 NODE_ENV=production
 ```
+
+**重要说明：**
+- 前后端使用相同的 Neon 生产数据库
+- 必须使用不同的 AUTH_SECRET（与开发环境分离）
+- Research API URLs 指向 Render 部署的后端
 
 ---
 

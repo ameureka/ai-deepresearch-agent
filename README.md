@@ -20,7 +20,7 @@ A production-ready AI research assistant featuring a modern Next.js frontend wit
 - **Real-Time Updates**: SSE-based research progress streaming
 - **Responsive Design**: Mobile-first with sticky research panel
 - **User-Triggered Research**: Seamless AI-to-research workflow
-- **Production Ready**: Docker Compose orchestration for all services
+- **Production Ready**: Vercel deployment + Python/Docker backend + Neon database
 
 ### 🧠 Intelligent Context Management (Phase 1.5)
 - **Unlimited Length**: Process arbitrary length texts
@@ -75,10 +75,11 @@ ai-deepresearch-agent/
 
 ### System Architecture
 
+**Development Environment:**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Next.js Frontend (Port 3000)             │
-│  - Modern React UI with App Router                           │
+│         Next.js Frontend (npm run dev / vercel dev)          │
+│  - Local dev server (Port 3000)                              │
 │  - Real-time SSE streaming (fetch-event-source)              │
 │  - ResearchPanel with sticky positioning                     │
 │  - useResearchProgress Hook                                  │
@@ -86,10 +87,10 @@ ai-deepresearch-agent/
                          │ HTTP/SSE
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                FastAPI Backend (Port 8000)                   │
-│  - REST API Endpoints                                        │
-│  - SSE Research Streaming (/api/research/stream)             │
-│  - Background Task Management                                │
+│          FastAPI Backend (uvicorn --reload)                  │
+│  - Python direct run (Port 8000) - RECOMMENDED               │
+│  - OR Docker Compose (optional, low priority)                │
+│  - REST API + SSE Research Streaming                         │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -114,10 +115,37 @@ ai-deepresearch-agent/
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│             PostgreSQL Database (Port 5432)                  │
+│            Neon PostgreSQL (SaaS - cloud.neon.tech)          │
+│  - Serverless database for dev AND production                │
 │  - Task state management                                     │
 │  - Research results storage                                  │
-│  - Cost tracking records                                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Production Environment:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Vercel Platform (Edge CDN)                   │
+│  - Next.js 15 deployment                                     │
+│  - Global Edge Network                                       │
+│  - Automatic HTTPS                                           │
+│  - URL: https://your-app.vercel.app                          │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTPS
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│          Render / Independent Server                         │
+│  - Python uvicorn deployment (RECOMMENDED)                   │
+│  - OR Docker container (optional)                            │
+│  - URL: https://your-backend.onrender.com                    │
+└────────────────────────┬────────────────────────────────────┘
+                         │ SSL/TLS
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│            Neon PostgreSQL (Production)                      │
+│  - Serverless PostgreSQL with auto-scaling                   │
+│  - Automatic backups                                         │
+│  - URL: postgresql://...@ep-xxx-prod.neon.tech/...          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -127,13 +155,14 @@ ai-deepresearch-agent/
 
 ### Prerequisites
 
-- **Docker Desktop** (Windows/macOS) or **Docker Engine** (Linux)
+- **Python 3.11+** and **Node.js 18+**
+- **Neon Account** - Free serverless PostgreSQL ([sign up](https://neon.tech))
 - **API Keys**:
   - [DeepSeek API Key](https://platform.deepseek.com/)
   - [OpenAI API Key](https://platform.openai.com/)
   - [Tavily API Key](https://tavily.com/)
 
-### Method A: Docker Compose (Recommended)
+### Method A: Automated Setup (Recommended)
 
 #### 1. Clone Repository
 
@@ -142,106 +171,100 @@ git clone https://github.com/ameureka/ai-deepresearch-agent.git
 cd ai-deepresearch-agent
 ```
 
-#### 2. Configure Environment
+#### 2. Setup Neon Database
+
+1. Visit https://neon.tech and create a free account
+2. Create a new project (e.g., `ai-research-dev`)
+3. Copy the connection string (looks like: `postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require`)
+
+#### 3. Configure Environment
 
 ```bash
-# Create .env file
+# Backend environment
 cp .env.example .env
+nano .env  # Add your API keys and Neon DATABASE_URL
 
-# Edit .env with your API keys
-nano .env
+# Frontend environment
+cp ai-chatbot-main/.env.local.example ai-chatbot-main/.env.local
+nano ai-chatbot-main/.env.local  # Add POSTGRES_URL and backend API URL
 ```
 
 Required environment variables:
 
+**.env (Backend):**
 ```bash
 # API Keys
 DEEPSEEK_API_KEY=sk-your-deepseek-key
 OPENAI_API_KEY=sk-your-openai-key
 TAVILY_API_KEY=tvly-your-tavily-key
 
-# Database (PostgreSQL in Docker)
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+# Database (Neon SaaS - same for dev and prod)
+DATABASE_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
+
+# Server Config
+HOST=0.0.0.0
+PORT=8000
+```
+
+**ai-chatbot-main/.env.local (Frontend):**
+```bash
+# Database (same Neon connection)
+POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
+
+# Backend API
+RESEARCH_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Auth
-AUTH_SECRET=your-random-secret-key
+AUTH_SECRET=your-random-secret-min-32-chars
 ```
 
-#### 3. Start All Services
+#### 4. Run Automated Setup
 
 ```bash
-# Build and start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Check status
-docker-compose ps
-```
-
-#### 4. Access Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-#### 5. Stop Services
-
-```bash
-docker-compose down        # Stop services
-docker-compose down -v     # Stop and remove volumes
-```
-
-### Method B: Direct Run (Development)
-
-For local development without Docker, we provide automated setup scripts:
-
-#### 1. Quick Setup (Automated)
-
-```bash
-# Clone repository
-git clone https://github.com/ameureka/ai-deepresearch-agent.git
-cd ai-deepresearch-agent
-
-# Configure environment
-cp .env.example .env
-cp ai-chatbot-main/.env.local.example ai-chatbot-main/.env.local
-# Edit both files with your API keys
-
 # Setup backend (creates venv, installs dependencies)
 ./scripts/setup-backend.sh
 
 # Setup frontend (installs npm packages)
 ./scripts/setup-frontend.sh
 
-# Start all services
+# Start all services (frontend + backend)
 ./scripts/dev.sh
 ```
 
 This will start:
-- Backend: http://localhost:8000
-- Frontend: http://localhost:3000
+- **Frontend**: http://localhost:3000 (Vercel Dev / npm run dev)
+- **Backend**: http://localhost:8000 (Python uvicorn)
+- **Database**: Neon SaaS (no local setup needed!)
 
-#### 2. Stop Services
+#### 5. Stop Services
 
 ```bash
 # In another terminal
 ./scripts/stop-dev.sh
 ```
 
-#### 3. Manual Setup (Advanced)
+### Method B: Docker Compose (Optional - Backend Only)
 
-If you prefer manual control, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed instructions including:
+⚠️ **Note**: Docker is optional and only for backend deployment (low priority). Frontend always uses Vercel.
+
+```bash
+# Start backend + PostgreSQL in Docker (for testing)
+docker-compose up -d backend postgres
+
+# Frontend still runs with npm
+cd ai-chatbot-main && npm run dev
+```
+
+See [docker-compose.yml](./docker-compose.yml) for warnings and detailed configuration.
+
+### Method C: Manual Setup (Advanced)
+
+For complete manual control, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed instructions including:
 - Manual virtual environment setup
-- Database migration steps
+- Neon database configuration
 - Individual service startup
 - Troubleshooting tips
-
-**Prerequisites:**
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL (local, Docker, or Neon SaaS)
 
 ---
 
@@ -347,8 +370,8 @@ OPENAI_API_KEY=sk-your-key
 TAVILY_API_KEY=tvly-your-key
 SERPER_API_KEY=your-key (optional)
 
-# Database
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+# Database (Neon SaaS - recommended for both dev and prod)
+DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
 
 # Model Selection
 PLANNER_MODEL=deepseek:deepseek-reasoner
@@ -362,20 +385,30 @@ ENABLE_CHUNKING=true
 CHUNKING_THRESHOLD=0.8
 MAX_CHUNK_SIZE=6000
 CHUNK_OVERLAP=200
+
+# Server Config
+HOST=0.0.0.0
+PORT=8000
+LOG_LEVEL=INFO
 ```
 
 ### Frontend Configuration (.env.local)
 
 ```bash
+# Database (same Neon connection as backend)
+POSTGRES_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
+
 # Backend API
-NEXT_PUBLIC_API_URL=http://localhost:8000
+RESEARCH_API_URL=http://localhost:8000       # Server-side
+NEXT_PUBLIC_API_URL=http://localhost:8000    # Client-side
 
 # Auth
-AUTH_SECRET=your-secret-key
+AUTH_SECRET=your-random-secret-min-32-chars
 AUTH_URL=http://localhost:3000/api/auth
 
-# AI SDK
-OPENAI_API_KEY=sk-your-key
+# Vercel Services (optional)
+BLOB_READ_WRITE_TOKEN=vercel_blob_xxx
+AI_GATEWAY_API_KEY=vercel_ag_xxx
 
 # Node Environment
 NODE_ENV=development
@@ -407,12 +440,18 @@ NODE_ENV=development
 
 ## 🔄 Version History
 
-### v0.2.0 - Phase 4 Deployment (2025-10-31)
+### v0.2.0 - Phase 4 Deployment (2025-11-01)
 - ✅ Monorepo structure (frontend + backend at same level)
-- ✅ Docker Compose multi-service orchestration
-- ✅ Production-ready configuration
+- ✅ **Architecture Clarification**:
+  - Frontend: Vercel deployment (NOT Docker)
+  - Backend: Python direct run (recommended) OR Docker (optional)
+  - Database: Neon PostgreSQL SaaS (unified for dev and prod)
+- ✅ Automated setup scripts (setup-backend.sh, setup-frontend.sh, dev.sh)
+- ✅ Production deployment guides (Vercel + Render/Server + Neon)
+- ✅ Complete environment variable documentation
+- ✅ Local development guide with Vercel Dev support
 - ✅ Updated .gitignore for Phase 4
-- ✅ Unified README documentation
+- ✅ Comprehensive README documentation
 
 ### v0.1.5 - Phase 3 Frontend Integration (2025-10-31)
 - ✅ ResearchButton, ResearchPanel, ResearchProgress components
@@ -457,49 +496,47 @@ NODE_ENV=development
 - 💻 [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) - **Complete setup and workflow**
 - 🔧 [Environment Variables Guide](./docs/ENVIRONMENT_VARIABLES.md)
 - 🗄️ [Database Configuration](./docs/DATABASE_CONFIGURATION.md)
-- 🐳 [Docker Compose Setup](./.kiro/specs/phase4-deployment/design.md)
+- 🐳 [Docker Compose Setup (Optional)](./.kiro/specs/phase4-deployment/design.md) - Backend only, low priority
 - 🧪 [E2E Testing Guide](./.kiro/specs/phase4-deployment/requirements.md)
 - ✅ [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
+
+### Deployment Guides
+- 🚀 [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md) - **Frontend deployment (Vercel platform)**
+- 🌐 [Production Deployment Guide](./docs/PRODUCTION_DEPLOYMENT.md) - **Complete production setup**
+  - Frontend: Vercel
+  - Backend: Render or independent server (Python uvicorn)
+  - Database: Neon PostgreSQL SaaS
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Docker Compose Issues
+### Backend Issues
 
 ```bash
-# Check service status
-docker-compose ps
+# Check Python version
+python --version  # Should be 3.11+
 
-# View logs
-docker-compose logs -f [service_name]
+# Recreate virtual environment
+rm -rf venv
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-# Rebuild services
-docker-compose build --no-cache
+# Check backend is running
+curl http://localhost:8000/health
 
-# Reset everything
-docker-compose down -v
-docker-compose up -d --build
+# View backend logs
+# Check terminal where uvicorn is running
 ```
 
-### Database Connection Issues
-
-```bash
-# Check PostgreSQL status
-docker-compose exec postgres pg_isready
-
-# Access PostgreSQL shell
-docker-compose exec postgres psql -U postgres -d ai_research
-
-# Reset database
-docker-compose down -v
-docker-compose up -d postgres
-```
-
-### Frontend Build Issues
+### Frontend Issues
 
 ```bash
 cd ai-chatbot-main
+
+# Check Node version
+node --version  # Should be 18+
 
 # Clear Next.js cache
 rm -rf .next
@@ -510,7 +547,72 @@ npm install
 
 # Rebuild
 npm run build
+
+# Test in development mode
+npm run dev
 ```
+
+### Database Connection Issues (Neon)
+
+```bash
+# Test connection manually
+psql "postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require"
+
+# Common issues:
+# 1. Check DATABASE_URL includes ?sslmode=require
+# 2. Verify Neon database is not suspended (free tier auto-suspends)
+# 3. Check IP allowlist in Neon dashboard (if configured)
+# 4. Ensure connection string has correct password (no special chars issues)
+```
+
+### Docker Compose Issues (If Using Optional Docker)
+
+⚠️ **Note**: Docker is optional for backend only. Frontend should NOT use Docker.
+
+```bash
+# Check backend service status
+docker-compose ps
+
+# View backend logs
+docker-compose logs -f backend
+
+# Rebuild backend only
+docker-compose build --no-cache backend
+
+# Reset backend
+docker-compose down
+docker-compose up -d backend
+
+# Frontend still runs with npm (NOT Docker)
+cd ai-chatbot-main && npm run dev
+```
+
+### Common Issues
+
+**Issue**: "Cannot connect to backend API"
+- **Solution**: Ensure backend is running on port 8000 and `NEXT_PUBLIC_API_URL=http://localhost:8000` is set
+
+**Issue**: "Database connection timeout"
+- **Solution**: Check Neon database status (may be suspended), verify connection string format
+
+**Issue**: "Module not found" errors
+- **Solution**: Run `pip install -r requirements.txt` (backend) or `npm install` (frontend)
+
+**Issue**: "Port already in use"
+- **Solution**: Check what's using the port:
+  ```bash
+  # macOS/Linux
+  lsof -i :8000  # Backend
+  lsof -i :3000  # Frontend
+
+  # Windows
+  netstat -ano | findstr :8000
+  ```
+
+For more detailed troubleshooting, see:
+- [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md#troubleshooting)
+- [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md#故障排查)
+- [Production Deployment Guide](./docs/PRODUCTION_DEPLOYMENT.md#故障排查)
 
 ---
 

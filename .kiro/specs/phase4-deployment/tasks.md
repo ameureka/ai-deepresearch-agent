@@ -11,23 +11,41 @@
 
 ---
 
+## ⚠️ 重要架构说明
+
+**正确的架构：**
+- **Frontend**: Vercel（本地使用 Vercel Dev，生产使用 Vercel 平台）- **不使用 Docker**
+- **Backend**: Python 直接运行（推荐）或 Docker（可选，低优先级）
+- **Database**: Neon SaaS（本地和生产统一使用）
+
+**Docker 的角色：**
+- Docker Compose 仅用于本地开发（可选）
+- 仅容器化后端（如果选择使用）
+- 不容器化前端（前端始终使用 Vercel）
+- 不容器化数据库（统一使用 Neon）
+
+---
+
 ## 任务概览
 
 本阶段包含 **60 个任务**，分为 **8 个主要模块**：
 
 1. **项目结构整合** (8 个任务，4 小时)
 2. **环境变量配置** (6 个任务，3 小时)
-3. **本地开发环境** (10 个任务，8 小时)
-4. **数据库部署** (6 个任务，4 小时)
-5. **后端部署** (8 个任务，8 小时)
-6. **前端部署** (6 个任务，6 小时)
-7. **测试和验收** (12 个任务，24 小时)
-8. **监控和文档** (4 个任务，8 小时)
+3. **本地开发环境（Vercel Dev + Python）** (10 个任务，8 小时)
+4. **Docker 部署（可选，仅后端）** (6 个任务，4 小时) - **低优先级**
+5. **数据库部署** (6 个任务，4 小时)
+6. **后端部署** (8 个任务，8 小时)
+7. **前端部署到 Vercel** (6 个任务，6 小时)
+8. **测试和验收** (12 个任务，24 小时)
+9. **监控和文档** (4 个任务，8 小时)
 
 **标记说明**:
 - `[ ]` 未完成
 - `[x]` 已完成
 - `*` 可选任务（文档编写）
+- `OPTIONAL` 可选任务（Docker 相关）
+- `REMOVED` 已移除任务（前端 Docker 相关）
 
 ---
 
@@ -62,27 +80,29 @@
 - _需求: Requirement 1_
 - _预计时间: 15 分钟_
 
-#### - [ ] 1.4 创建 Dockerfile.backend
+#### - [ ] 1.4 创建 Dockerfile.backend（可选）
 
-- 创建文件 `Dockerfile.backend`
+- 创建文件 `Dockerfile.backend`（可选）
 - 使用 Python 3.11-slim 基础镜像
 - 安装系统依赖
 - 复制并安装 Python 依赖
 - 配置启动命令
 - 添加健康检查
+- **注意**: 推荐直接运行 Python，Docker 是可选方案
 - _需求: Requirement 5_
 - _预计时间: 45 分钟_
+- **标记: OPTIONAL（可选）**
 
-#### - [ ] 1.5 创建 docker-compose.yml
+#### - [ ] 1.5 创建 docker-compose.yml（可选，仅后端）
 
-- 创建文件 `docker-compose.yml`
-- 定义 postgres 服务
-- 定义 backend 服务
-- 定义 frontend 服务
-- 配置服务依赖
+- 创建文件 `docker-compose.yml`（可选）
+- 仅定义 backend 服务（不定义前端和数据库）
+- 配置使用 Neon 数据库
 - 配置卷挂载
+- 说明前端使用 Vercel Dev
 - _需求: Requirement 4_
 - _预计时间: 1 小时_
+- **标记: OPTIONAL（可选）**
 
 #### - [ ] 1.6 创建统一 README
 
@@ -170,14 +190,16 @@
 - _需求: Requirement 2, 18_
 - _预计时间: 15 分钟_
 
-### Day 3: 本地开发环境（直接运行）（4 小时）
+### Day 3: 本地开发环境（推荐方式 - Vercel Dev + Python）（4 小时）
 
-#### - [ ] 3.1 准备本地 PostgreSQL
+**⚠️ 重要**: 本地开发推荐使用 Vercel Dev + Python 直接运行，不使用 Docker
 
-- 使用 Docker 启动 PostgreSQL
-- 或安装本地 PostgreSQL
-- 或使用 Neon 开发数据库
-- 验证数据库可访问
+#### - [ ] 3.1 配置 Neon 数据库（本地和生产统一）
+
+- 访问 https://neon.tech 创建开发数据库
+- 获取数据库连接字符串
+- 配置到 .env.local
+- 验证数据库可访问（无需本地 PostgreSQL）
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
@@ -217,12 +239,13 @@
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
-#### - [ ] 3.6 启动前端服务
+#### - [ ] 3.6 启动前端服务（使用 Vercel Dev）
 
-- 运行 `npm run dev`
+- 运行 `npm run dev` 或 `vercel dev`
 - 验证服务启动成功
 - 访问 `http://localhost:3000`
 - 检查控制台无错误
+- 验证与生产环境一致
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
@@ -263,9 +286,11 @@
 - _需求: Requirement 3, 18_
 - _预计时间: 15 分钟_
 
-### Day 4: 本地开发环境（Docker）（4 小时）
+### Day 4: Docker 部署（可选，仅后端，低优先级）（4 小时）
 
-#### - [ ] 4.1 构建后端 Docker 镜像
+**⚠️ 重要**: Docker 仅用于后端容器化（可选），前端始终使用 Vercel Dev
+
+#### - [ ] 4.1 构建后端 Docker 镜像（可选）
 
 - 运行 `docker build -f Dockerfile.backend -t research-backend .`
 - 验证构建成功
@@ -273,35 +298,38 @@
 - 优化镜像（如需要）
 - _需求: Requirement 4_
 - _预计时间: 45 分钟_
+- **标记: OPTIONAL（可选）**
 
-#### - [ ] 4.2 构建前端 Docker 镜像
+#### - [REMOVED] 4.2 构建前端 Docker 镜像
 
-- 在 `ai-chatbot-main/` 创建 Dockerfile
-- 运行 `docker build -t research-frontend .`
-- 验证构建成功
-- 检查镜像大小
+- **已移除**: 前端不使用 Docker，始终使用 Vercel Dev
+- 本地开发: `npm run dev` 或 `vercel dev`
+- 生产部署: Vercel 平台自动构建
 - _需求: Requirement 4_
-- _预计时间: 45 分钟_
+- **标记: REMOVED（已移除）**
 
-#### - [ ] 4.3 测试 Docker Compose
+#### - [ ] 4.3 测试 Docker Compose（可选，仅后端）
 
-- 运行 `docker-compose up -d`
-- 验证所有服务启动
+- 运行 `docker-compose up -d backend`
+- 验证后端服务启动
 - 检查服务健康状态
-- 查看日志 `docker-compose logs -f`
+- 查看日志 `docker-compose logs -f backend`
+- 在另一个终端启动前端: `cd ai-chatbot-main && npm run dev`
 - _需求: Requirement 4_
 - _预计时间: 30 分钟_
+- **标记: OPTIONAL（可选）**
 
-#### - [ ] 4.4 测试 Docker 环境
+#### - [ ] 4.4 测试 Docker 环境（可选）
 
-- 访问前端 `http://localhost:3000`
-- 访问后端 `http://localhost:8000`
+- 访问前端 `http://localhost:3000`（Vercel Dev）
+- 访问后端 `http://localhost:8000`（Docker 容器）
 - 测试完整流程
-- 验证数据持久化
+- 验证前后端通信
 - _需求: Requirement 4_
 - _预计时间: 45 分钟_
+- **标记: OPTIONAL（可选）**
 
-#### - [ ] 4.5 优化 Docker 配置
+#### - [ ] 4.5 优化 Docker 配置（可选）
 
 - 配置代码热重载
 - 优化构建缓存
@@ -309,13 +337,14 @@
 - 添加健康检查
 - _需求: Requirement 4_
 - _预计时间: 45 分钟_
+- **标记: OPTIONAL（可选）**
 
 #### - [ ] 4.6 更新 README Docker 说明
 
-- 添加 Docker 使用章节
-- 提供启动命令
-- 添加常见问题
-- 添加故障排查
+- 添加 Docker 使用章节（标记为可选）
+- 强调前端始终使用 Vercel Dev
+- 说明 Docker 仅用于后端（可选）
+- 添加常见问题和故障排查
 - _需求: Requirement 4, 18_
 - _预计时间: 30 分钟_
 
@@ -462,22 +491,24 @@
 
 ### Day 7: 前端部署到 Vercel（6 小时）
 
-#### - [ ] 7.1 安装 Vercel CLI
+#### - [ ] 7.1 安装 Vercel CLI（如未安装）
 
 - 运行 `npm i -g vercel`
 - 验证安装成功 `vercel --version`
 - 登录 `vercel login`
 - 验证登录成功
+- **注意**: 前端始终使用 Vercel，不使用 Docker
 - _需求: Requirement 8_
 - _预计时间: 15 分钟_
 
-#### - [ ] 7.2 首次部署
+#### - [ ] 7.2 首次部署到 Vercel
 
 - 进入 `ai-chatbot-main/` 目录
 - 运行 `vercel`
 - 选择项目设置
 - 等待部署完成
 - 获取预览 URL
+- 验证 Vercel 自动构建流程
 - _需求: Requirement 8_
 - _预计时间: 30 分钟_
 
@@ -1008,11 +1039,11 @@
 
 - [ ] 项目结构整合完成
 - [ ] 环境变量配置完整
-- [ ] 本地开发环境正常（直接运行）
-- [ ] 本地开发环境正常（Docker）
-- [ ] 数据库部署成功
-- [ ] 后端部署成功
-- [ ] 前端部署成功
+- [ ] 本地开发环境正常（Vercel Dev + Python）
+- [ ] 本地开发环境正常（Docker 后端 - 可选）
+- [ ] 数据库部署成功（Neon）
+- [ ] 后端部署成功（Python 直接运行或 Docker）
+- [ ] 前端部署成功（Vercel - 不使用 Docker）
 - [ ] CORS 配置正确
 - [ ] 防休眠配置生效
 - [ ] 端到端测试通过
@@ -1021,6 +1052,12 @@
 - [ ] 安全配置完善
 - [ ] 监控和日志正常
 - [ ] 文档完整
+
+**架构验收**:
+- [ ] 前端使用 Vercel（本地和生产）
+- [ ] 后端使用 Python 直接运行（推荐）或 Docker（可选）
+- [ ] 数据库使用 Neon（本地和生产统一）
+- [ ] 不使用前端 Docker 容器
 
 ### 数据验收
 
