@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Phase 2 SSE Research Agent - Real-time Streaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .step-header {
+            cursor: pointer;
+        }
+
+        .step-running {
+            background-color: #fff3cd;
+        }
+
+        .step-done {
+            background-color: #d1e7dd;
+        }
+
+        .step-error {
+            background-color: #f8d7da;
+        }
+
+        .step-pending {
+            background-color: #e2e3e5;
+        }
+
+        .substep {
+            font-size: 0.95em;
+            margin-left: 1.5rem;
+        }
+
+        .substep-header {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .status-icon {
+            margin-right: 0.5rem;
+        }
+
+        #stepStatusList div {
+            margin-bottom: 0.25rem;
+        }
+
+        #finalReport {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        /* SSE 特定样式 */
+        .sse-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .event-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .event-item {
+            padding: 6px;
+            margin-bottom: 4px;
+            border-left: 3px solid #6c757d;
+            background: white;
+        }
+
+        .event-start {
+            border-left-color: #0d6efd;
+        }
+
+        .event-plan {
+            border-left-color: #6610f2;
+        }
+
+        .event-progress {
+            border-left-color: #fd7e14;
+        }
+
+        .event-done {
+            border-left-color: #198754;
+        }
+
+        .event-error {
+            border-left-color: #dc3545;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+        }
+
+        .metrics {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .metric-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🧠 Phase 2 SSE Research Agent</h2>
+            <span class="sse-badge">✨ Real-time Streaming</span>
+        </div>
+
+        <!-- Intro Card -->
+        <div class="card mb-3 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title">🚀 Phase 2 新特性：Server-Sent Events (SSE)</h5>
+                <p class="mb-3">
+                    <strong>实时流式推送</strong> - 本页面使用 Phase 2 的 SSE 接口，相比旧版本的轮询方式有以下优势：
+                </p>
+                <ul class="mb-3">
+                    <li><strong>实时性提升</strong>：从 2 秒延迟降低到 < 100ms</li>
+                    <li><strong>网络效率</strong>：减少 90% 的网络请求</li>
+                    <li><strong>服务器压力</strong>：不使用数据库轮询，降低服务器负载</li>
+                    <li><strong>用户体验</strong>：实时看到每个步骤的执行进度</li>
+                </ul>
+                <p class="mb-0">
+                    <strong>SSE 事件类型：</strong>
+                    <span class="badge bg-primary">START</span>
+                    <span class="badge bg-secondary">PLAN</span>
+                    <span class="badge bg-warning">PROGRESS</span>
+                    <span class="badge bg-success">DONE</span>
+                    <span class="badge bg-danger">ERROR</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Prompt area -->
+        <div class="mb-3">
+            <label for="promptInput" class="form-label">Research Topic</label>
+            <div class="d-flex align-items-start gap-2">
+                <textarea class="form-control" id="promptInput" rows="4"
+                    placeholder="Enter your research topic here (e.g., 'AI applications in healthcare')"
+                    style="flex: 1"></textarea>
+                <button class="btn btn-primary" id="submitBtn" onclick="submitPrompt()">
+                    <span id="btnText">Submit</span>
+                    <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2" style="display:none;"></span>
+                </button>
+            </div>
+            <div class="form-text">Tip: Add 3–4 details to make your question more specific.</div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics" id="metricsContainer" style="display:none;">
+            <div class="metric-card">
+                <div class="metric-value" id="metricEvents">0</div>
+                <div class="metric-label">Events Received</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricSteps">0/0</div>
+                <div class="metric-label">Steps Completed</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricTime">0s</div>
+                <div class="metric-label">Elapsed Time</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricStatus">⏳</div>
+                <div class="metric-label">Status</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer" style="display:none;">
+            <div class="d-flex justify-content-between mb-2">
+                <span id="progressLabel">Initializing...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress" style="height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" role="progressbar"
+                    style="width: 0%">
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Info -->
+        <div id="taskInfo" class="mb-3"></div>
+
+        <!-- Step Status List -->
+        <div id="stepStatusList" class="mb-4"></div>
+
+        <!-- Event Log -->
+        <div id="eventLogContainer" style="display:none;">
+            <h5>📡 SSE Event Log</h5>
+            <div class="event-log" id="eventLog"></div>
+        </div>
+
+        <!-- Step Details -->
+        <div id="stepDetails"></div>
+
+        <!-- Final Output -->
+        <div id="finalOutput" class="mt-4"></div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let currentTopic = null;
+        let startTime = null;
+        let eventCount = 0;
+        let totalSteps = 0;
+        let currentStep = 0;
+        let timerInterval = null;
+
+        const renderedSteps = new Map();
+
+        function disableUI(disabled) {
+            const btn = document.getElementById('submitBtn');
+            const input = document.getElementById('promptInput');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            if (btn) btn.disabled = disabled;
+            if (input) input.disabled = disabled;
+            if (btnText) btnText.textContent = disabled ? 'Processing...' : 'Submit';
+            if (btnSpinner) btnSpinner.style.display = disabled ? 'inline-block' : 'none';
+        }
+
+        function updateMetrics() {
+            document.getElementById('metricEvents').textContent = eventCount;
+            document.getElementById('metricSteps').textContent = `${currentStep}/${totalSteps}`;
+
+            if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('metricTime').textContent = `${elapsed}s`;
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateMetrics, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function logEvent(type, data) {
+            eventCount++;
+            const eventLog = document.getElementById('eventLog');
+            const timestamp = new Date().toLocaleTimeString();
+
+            const eventItem = document.createElement('div');
+            eventItem.className = `event-item event-${type}`;
+            eventItem.innerHTML = `
+    <strong>[${timestamp}]</strong> 
+    <span class="badge bg-secondary">${type.toUpperCase()}</span>
+    <pre style="margin:4px 0 0 0; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>
+  `;
+
+            eventLog.appendChild(eventItem);
+            eventLog.scrollTop = eventLog.scrollHeight;
+
+            updateMetrics();
+        }
+
+        function updateProgress(step, total, message) {
+            const percent = Math.round((step / total) * 100);
+            const progressBar = document.getElementById('progressBar');
+            const progressLabel = document.getElementById('progressLabel');
+            const progressPercent = document.getElementById('progressPercent');
+
+            if (progressBar) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.textContent = `Step ${step}/${total}`;
+            }
+            if (progressLabel) progressLabel.textContent = message;
+            if (progressPercent) progressPercent.textContent = `${percent}%`;
+
+            currentStep = step;
+            totalSteps = total;
+            updateMetrics();
+        }
+
+        function submitPrompt() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                alert('Please enter a research topic');
+                return;
+            }
+
+            // Validate prompt length (min 10 characters)
+            if (prompt.length < 10) {
+                alert('❌ Research topic must be at least 10 characters long.\n\n研究主题至少需要 10 个字符。\n\n当前长度：' + prompt.length + ' 字符');
+                return;
+            }
+
+            if (prompt.length > 5000) {
+                alert('❌ Research topic is too long (max 5000 characters).\n\n研究主题太长（最多 5000 字符）。');
+                return;
+            }
+
+            // Close existing connection
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // Reset UI
+            currentTopic = prompt;
+            eventCount = 0;
+            currentStep = 0;
+            totalSteps = 0;
+            startTime = Date.now();
+
+            document.getElementById('stepStatusList').innerHTML = '';
+            document.getElementById('stepDetails').innerHTML = '';
+            document.getElementById('finalOutput').innerHTML = '';
+            document.getElementById('eventLog').innerHTML = '';
+            document.getElementById('taskInfo').innerHTML = '';
+            renderedSteps.clear();
+
+            // Show metrics and progress
+            document.getElementById('metricsContainer').style.display = 'flex';
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('eventLogContainer').style.display = 'block';
+            document.getElementById('metricStatus').textContent = '⏳';
+
+            updateProgress(0, 1, 'Connecting to server...');
+
+            disableUI(true);
+            startTimer();
+
+            // Create EventSource for SSE
+            // Note: EventSource only supports GET, so we need to use fetch for POST
+            // We'll use fetch to initiate and then read the stream
+
+            fetch('/api/research/stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    function processStream() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                console.log('Stream complete');
+                                stopTimer();
+                                disableUI(false);
+                                return;
+                            }
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n\n');
+                            buffer = lines.pop(); // Keep incomplete message in buffer
+
+                            lines.forEach(line => {
+                                if (!line.trim()) return;
+
+                                const eventMatch = line.match(/^event: (.+)$/m);
+                                const dataMatch = line.match(/^data: (.+)$/m);
+
+                                if (eventMatch && dataMatch) {
+                                    const eventType = eventMatch[1];
+                                    const eventData = JSON.parse(dataMatch[1]);
+                                    handleSSEEvent(eventType, eventData);
+                                }
+                            });
+
+                            processStream();
+                        }).catch(error => {
+                            console.error('Stream error:', error);
+                            handleError(error.message);
+                        });
+                    }
+
+                    processStream();
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    handleError(error.message);
+                });
+        }
+
+        function handleSSEEvent(eventType, data) {
+            logEvent(eventType, data);
+
+            switch (eventType) {
+                case 'start':
+                    handleStartEvent(data);
+                    break;
+                case 'plan':
+                    handlePlanEvent(data);
+                    break;
+                case 'progress':
+                    handleProgressEvent(data);
+                    break;
+                case 'done':
+                    handleDoneEvent(data);
+                    break;
+                case 'error':
+                    handleErrorEvent(data);
+                    break;
+            }
+        }
+
+        function handleStartEvent(data) {
+            document.getElementById('taskInfo').innerHTML = `
+    <div class="alert alert-info">
+      <strong>✅ Task Started</strong><br>
+      Topic: <code>${data.prompt}</code>
+    </div>
+  `;
+            updateProgress(0, 1, 'Generating execution plan...');
+        }
+
+        function handlePlanEvent(data) {
+            const steps = data.steps;
+            totalSteps = steps.length;
+
+            document.getElementById('taskInfo').innerHTML = `
+    <div class="alert alert-success">
+      <strong>📋 Execution Plan Generated</strong><br>
+      Total Steps: ${steps.length}
+    </div>
+  `;
+
+            // Create step status list
+            const statusList = document.getElementById('stepStatusList');
+            statusList.innerHTML = '<h5>📊 Execution Steps</h5>';
+
+            steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.id = `step-status-${index}`;
+                stepDiv.className = 'step-header step-pending';
+                stepDiv.innerHTML = `🕓 ${index + 1}. ${step}`;
+                statusList.appendChild(stepDiv);
+            });
+
+            updateProgress(0, steps.length, 'Ready to execute steps...');
+        }
+
+        function handleProgressEvent(data) {
+            const { step, total, message } = data;
+
+            updateProgress(step, total, message);
+
+            // Update step status
+            const stepDiv = document.getElementById(`step-status-${step - 1}`);
+            if (stepDiv) {
+                stepDiv.className = 'step-header step-running';
+                stepDiv.innerHTML = `<span class="spinner-border spinner-border-sm text-warning"></span> ${step}. ${message}`;
+            }
+
+            // Mark previous step as done
+            if (step > 1) {
+                const prevStepDiv = document.getElementById(`step-status-${step - 2}`);
+                if (prevStepDiv) {
+                    prevStepDiv.className = 'step-header step-done';
+                    const prevText = prevStepDiv.textContent.substring(prevStepDiv.textContent.indexOf('.'));
+                    prevStepDiv.innerHTML = `✅ ${step - 1}${prevText}`;
+                }
+            }
+
+            document.getElementById('metricStatus').textContent = '⚙️';
+        }
+
+        function handleDoneEvent(data) {
+            const { report } = data;
+
+            // Mark last step as done
+            if (totalSteps > 0) {
+                const lastStepDiv = document.getElementById(`step-status-${totalSteps - 1}`);
+                if (lastStepDiv) {
+                    lastStepDiv.className = 'step-header step-done';
+                    const lastText = lastStepDiv.textContent.substring(lastStepDiv.textContent.indexOf('.'));
+                    lastStepDiv.innerHTML = `✅ ${totalSteps}${lastText}`;
+                }
+            }
+
+            updateProgress(totalSteps, totalSteps, 'Research completed!');
+            document.getElementById('metricStatus').textContent = '✅';
+
+            document.getElementById('finalOutput').innerHTML = `
+    <h4>📄 Final Report</h4>
+    <div class="mb-2">
+      <button class="btn btn-outline-secondary btn-sm me-2" onclick="downloadMarkdown()">⬇️ Download .md</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="downloadHTML()">⬇️ Download .html</button>
+    </div>
+    <div id="finalReport">${marked.parse(report)}</div>
+  `;
+
+            window.finalReportMarkdown = report;
+
+            stopTimer();
+            disableUI(false);
+        }
+
+        function handleErrorEvent(data) {
+            const { message, step } = data;
+
+            document.getElementById('metricStatus').textContent = '❌';
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger';
+            errorDiv.innerHTML = `
+    <strong>❌ Error Occurred</strong><br>
+    ${step ? `Step ${step}: ` : ''}${message}
+  `;
+            document.getElementById('taskInfo').appendChild(errorDiv);
+
+            if (step) {
+                const stepDiv = document.getElementById(`step-status-${step - 1}`);
+                if (stepDiv) {
+                    stepDiv.className = 'step-header step-error';
+                    const stepText = stepDiv.textContent.substring(stepDiv.textContent.indexOf('.'));
+                    stepDiv.innerHTML = `❌ ${step}${stepText}`;
+                }
+            }
+
+            stopTimer();
+            disableUI(false);
+        }
+
+        function handleError(message) {
+            document.getElementById('metricStatus').textContent = '❌';
+
+            document.getElementById('taskInfo').innerHTML = `
+    <div class="alert alert-danger">
+      <strong>❌ Connection Error</strong><br>
+      ${message}
+    </div>
+  `;
+
+            stopTimer();
+            disableUI(false);
+        }
+
+        function downloadMarkdown() {
+            if (!window.finalReportMarkdown) return;
+            const blob = new Blob([window.finalReportMarkdown], { type: 'text/markdown' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `research_report_${Date.now()}.md`;
+            link.click();
+        }
+
+        function downloadHTML() {
+            if (!window.finalReportMarkdown) return;
+            const htmlContent = marked.parse(window.finalReportMarkdown);
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `research_report_${Date.now()}.html`;
+            link.click();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

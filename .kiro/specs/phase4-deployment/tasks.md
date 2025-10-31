@@ -682,35 +682,78 @@
 - _需求: Requirement 11_
 - _预计时间: 2 小时_
 
-#### - [ ] 10.3 编写研究任务测试
+#### - [ ] 10.2.5 编写 ResearchPanel 组件测试 ⭐ (Phase 3 新增)
+
+- 创建测试文件 `research-panel.spec.ts`
+- 测试 ResearchPanel 的 sticky 定位（bottom-[72px]，在聊天输入框上方）
+- 测试 isActive 状态切换（false: 显示 ResearchButton, true: 显示 ResearchProgress）
+- 测试 Framer Motion 动画效果（opacity 和 y 轴滑入/滑出）
+- 测试响应式布局（移动端 vs 桌面端）
+- 测试最大高度和滚动功能（max-h-[400px] overflow-y-auto）
+- 测试背景、圆角、阴影样式
+- 运行测试验证
+- _需求: Requirement 11, 22_
+- _预计时间: 1.5 小时_
+
+#### - [ ] 10.2.6 编写辅助函数测试 ⭐ (Phase 3 新增)
+
+- 创建测试文件 `research-utils.spec.ts`
+- 测试 detectResearchKeywords 函数：
+  - 中文关键词检测（研究、调查、探索、分析）
+  - 英文关键词检测（research, investigate, study, analyze）
+  - 大小写不敏感
+  - 边界情况（null, undefined, 空字符串）
+- 测试 extractResearchQuery 函数：
+  - 从 AI 消息中正确提取研究主题
+  - 处理不同的消息格式
+  - 清理多余的后缀（for you, please 等）
+- 测试 validateResearchQuery 函数：
+  - 验证最小长度（>= 3 字符）
+  - 验证最大长度（<= 500 字符）
+  - 验证必须包含字母
+- 运行测试验证
+- _需求: Requirement 11, 21_
+- _预计时间: 1 小时_
+
+#### - [ ] 10.3 编写研究任务测试 ⚠️ (已更新以匹配 Phase 3 新架构)
 
 - 创建测试文件 `research.spec.ts`
-- 测试发起研究任务
-- 测试 AI 调用 startResearch 工具
-- 测试 taskId 返回
+- 测试与 AI 对话，让 AI 回复包含研究关键词（如 "我可以为你研究..."）
+- 测试 ResearchButton 在聊天输入框上方显示（sticky 定位在 bottom-[72px]）
+- 测试用户点击 ResearchButton 按钮
+- 测试 useResearchProgress Hook 直接发起 POST SSE 连接到 /api/research/stream
+- 测试 SSE 事件接收（start, plan, progress, done）
+- 验证研究 prompt 正确传递
 - 运行测试验证
 - _需求: Requirement 11_
-- _预计时间: 2 小时_
+- _预计时间: 2.5 小时_ ⬆️
 
-#### - [ ] 10.4 编写进度显示测试
+#### - [ ] 10.4 编写进度显示测试 ⚠️ (已更新以匹配 Phase 3 新架构)
 
-- 测试 SSE 连接建立
-- 测试进度事件接收
-- 测试进度信息显示
-- 测试进度更新
+- 测试 ResearchPanel 组件在 Chat 组件中正确渲染
+- 测试 ResearchProgress 组件在 ResearchPanel 中显示
+- 测试 SSE 连接建立（通过 fetch-event-source 库，支持 POST）
+- 测试进度事件接收并更新 events 数组（start, plan, progress）
+- 测试进度信息显示（根据 events 数组动态渲染步骤）
+- 测试 status 状态变化（idle → researching → completed/failed）
+- 测试 Framer Motion 动画（滑入/滑出效果）
 - 运行测试验证
 - _需求: Requirement 11_
-- _预计时间: 2 小时_
+- _预计时间: 2.5 小时_ ⬆️
 
-#### - [ ] 10.5 编写报告生成测试
+#### - [ ] 10.5 编写报告生成测试 ⚠️ (已更新以匹配 Phase 3 新架构)
 
-- 测试研究完成事件
-- 测试 Artifact 自动创建
-- 测试 Markdown 渲染
-- 测试报告内容
+- 测试接收 done 事件（包含完整报告）
+- 测试 onComplete 回调被正确触发
+- 测试 sendMessage 函数将报告发送给 AI（格式: "Research completed:\n\n{report}"）
+- 测试 AI 收到报告后调用 createDocument 工具
+- 测试 Artifact 自动创建（类型为 "text"）
+- 测试 Markdown 渲染正确
+- 测试报告内容完整性
+- 测试 ResearchPanel 在研究完成后正确关闭
 - 运行测试验证
 - _需求: Requirement 11_
-- _预计时间: 2 小时_
+- _预计时间: 2.5 小时_ ⬆️
 
 #### - [ ] 10.6 编写追问测试
 
@@ -1001,11 +1044,19 @@
 | 周次 | 模块 | 任务数 | 预计时间 |
 |------|------|--------|----------|
 | Week 1 | 准备与配置 | 24 | 32 小时 |
-| Week 2 | 部署与测试 | 28 | 48 小时 |
+| Week 2 | 部署与测试 | 30 | 52 小时 ⬆️ |
+| - Day 10-11 | 端到端测试（含 Phase 3 新组件） | 14 | 19 小时 ⬆️ |
 | Week 3 | 完善和文档 | 8 | 16 小时 |
-| **总计** | **8 个模块** | **60** | **96 小时** |
+| **总计** | **8 个模块** | **62** ⬆️ | **100 小时** ⬆️ |
 
-**实际工作日**: 12 天（每天 8 小时）
+**实际工作日**: 12.5 天（每天 8 小时）⬆️
+
+**⚠️ 更新说明 (2025-10-31)**:
+- 已更新测试用例以匹配 Phase 3 新架构（用户触发式研究）
+- 新增 ResearchPanel 组件测试（任务 10.2.5）
+- 新增辅助函数测试（任务 10.2.6）
+- 测试时间从 96 小时增加到 100 小时（+4 小时）
+- 总任务数从 60 个增加到 62 个（+2 个）
 
 ---
 

@@ -236,9 +236,17 @@ class PromptRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 def read_index(request: Request):
     """
-    首页路由 - 返回主界面 HTML
+    首页路由 - 返回主界面 HTML（旧版轮询接口）
     """
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/sse", response_class=HTMLResponse)
+def read_sse_index(request: Request):
+    """
+    SSE 测试页面路由 - Phase 2 流式接口测试
+    """
+    return templates.TemplateResponse("index-sse.html", {"request": request})
 
 
 @app.get("/api", response_class=JSONResponse)
@@ -775,11 +783,11 @@ async def research_stream(request: ResearchRequest):
                 logger.info(f"⚙️  执行步骤 {step_number}: {step_title[:50]}...")
                 try:
                     # executor_agent_step 返回: (step_description, agent_name, output)
+                    # 注意：executor_agent_step 不支持 model 参数，使用默认配置
                     step_desc, agent_name, output = executor_agent_step(
                         step_title,
                         execution_history,
-                        request.prompt,
-                        model=request.model  # 使用用户指定的模型（如果有）
+                        request.prompt
                     )
 
                     # 添加到历史记录

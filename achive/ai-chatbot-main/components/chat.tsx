@@ -3,10 +3,11 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { ChatHeader } from "@/components/chat-header";
+import { ResearchPanel } from "@/components/research-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,8 +21,13 @@ import {
 import { useArtifactSelector } from "@/hooks/use-artifact";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
+import { useResearchProgress } from "@/hooks/use-research-progress";
 import type { Vote } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
+import {
+  detectResearchKeywords,
+  extractResearchQuery,
+} from "@/lib/research-utils";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import type { AppUsage } from "@/lib/usage";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
@@ -147,6 +153,84 @@ export function Chat({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
 
+  // Phase 3: Research Integration
+  const [researchPrompt, setResearchPrompt] = useState<string | null>(null);
+  const [showResearchUI, setShowResearchUI] = useState(false);
+
+  // Detect research keywords in last AI message
+  const lastAiMessage = messages
+    .slice()
+    .reverse()
+    .find((m) => m.role === "assistant");
+
+  // Get text content from message parts
+  const getMessageText = (message: ChatMessage | undefined): string => {
+    if (!message || !message.parts) return "";
+    return message.parts
+      .filter((part) => part.type === "text")
+      .map((part) => (part.type === "text" ? part.text : ""))
+      .join(" ");
+  };
+
+  const lastAiMessageText = getMessageText(lastAiMessage);
+  const shouldShowResearchButton =
+    !showResearchUI &&
+    lastAiMessageText &&
+    detectResearchKeywords(lastAiMessageText);
+
+  // Extract research query from last AI message
+  const suggestedResearchQuery = lastAiMessageText
+    ? extractResearchQuery(lastAiMessageText)
+    : "";
+
+  // Start research handler
+  const handleStartResearch = useCallback((prompt: string) => {
+    setResearchPrompt(prompt);
+    setShowResearchUI(true);
+  }, []);
+
+  // Research complete handler
+  const handleResearchComplete = useCallback(
+    (report: string) => {
+      // Send research report as user message
+      sendMessage({
+        role: "user",
+        parts: [
+          {
+            type: "text",
+            text: `Research completed:\n\n${report}`,
+          },
+        ],
+      });
+
+      // Hide research UI
+      setResearchPrompt(null);
+      setShowResearchUI(false);
+    },
+    [sendMessage]
+  );
+
+  // Research error handler
+  const handleResearchError = useCallback((error: Error) => {
+    toast({
+      type: "error",
+      description: `Research failed: ${error.message}`,
+    });
+  }, []);
+
+  // Use research progress hook
+  const {
+    events: researchEvents,
+    status: researchStatus,
+    error: researchError,
+    cancel: cancelResearch,
+    retry: retryResearch,
+  } = useResearchProgress({
+    prompt: researchPrompt,
+    onComplete: handleResearchComplete,
+    onError: handleResearchError,
+  });
+
   useAutoResume({
     autoResume,
     initialMessages,
@@ -174,6 +258,20 @@ export function Chat({
           status={status}
           votes={votes}
         />
+
+        {/* Phase 3: Research Panel */}
+        {!isReadonly && (shouldShowResearchButton || showResearchUI) && (
+          <ResearchPanel
+            prompt={suggestedResearchQuery}
+            isActive={showResearchUI}
+            events={researchEvents}
+            status={researchStatus}
+            error={researchError}
+            onStart={handleStartResearch}
+            onCancel={cancelResearch}
+            onRetry={retryResearch}
+          />
+        )}
 
         <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
           {!isReadonly && (

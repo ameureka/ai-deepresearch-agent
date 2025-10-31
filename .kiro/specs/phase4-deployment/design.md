@@ -791,82 +791,119 @@ echo "✨ 本地联调测试完成！"
    - 登录
    - 验证 session
 
-2. **发起研究任务**
-   - 输入研究主题
-   - AI 调用 startResearch 工具
-   - 返回 taskId
+2. **AI 建议研究** ⚠️ (已更新以匹配 Phase 3 新架构)
+   - 与 AI 对话（如 "Tell me about quantum computing"）
+   - AI 回复包含研究关键词（如 "I can research quantum computing for you"）
+   - ResearchButton 在聊天输入框上方显示（sticky 定位在 bottom-[72px]）
+   - 验证关键词检测逻辑（detectResearchKeywords 函数）
 
-3. **实时进度显示**
-   - SSE 连接建立
-   - 接收进度事件
-   - 显示进度信息
+3. **用户发起研究** ⚠️ (已更新)
+   - 用户点击 ResearchButton
+   - useResearchProgress Hook 发起 POST SSE 连接
+   - 验证 API 路由代理 (/api/research/stream)
+   - 验证 prompt 正确传递到后端
 
-4. **报告生成**
-   - 研究完成
-   - 自动创建 Artifact
+4. **实时进度显示** ⚠️ (已更新)
+   - SSE 连接建立（使用 fetch-event-source 库，支持 POST）
+   - 接收进度事件（start, plan, progress）
+   - ResearchProgress 组件在 ResearchPanel 中显示
+   - events 数组实时更新
+   - 验证进度信息正确渲染（根据 events 动态显示步骤）
+   - 验证 status 状态变化（idle → researching → completed）
+
+5. **报告生成** ⚠️ (已更新)
+   - 接收 done 事件（包含完整报告）
+   - onComplete 回调被触发
+   - sendMessage 将报告发送给 AI（格式: "Research completed:\n\n{report}"）
+   - AI 收到报告后调用 createDocument 工具
+   - 自动创建 Artifact（类型为 "text"）
    - 显示 Markdown 报告
+   - ResearchPanel 自动关闭
 
-5. **追问和更新**
+6. **追问和更新**
    - 用户追问
-   - AI 更新报告
+   - AI 调用 updateDocument 更新报告
    - Artifact 更新
+   - 验证报告版本历史
 
-6. **历史记录**
-   - 查看历史任务
+7. **历史记录**
+   - 查看历史任务（从数据库读取 research_tasks 表）
    - 点击查看详情
    - 验证数据正确
 
-7. **错误处理**
+8. **错误处理**
    - 模拟网络错误
    - 验证错误提示
-   - 验证重连机制
+   - 验证 fetch-event-source 重连机制（最多 3 次）
+   - 验证 status 变为 'failed'
 
-8. **断线重连**
+9. **断线重连** ⚠️ (已更新)
    - 断开 SSE 连接
-   - 验证自动重连
+   - 验证 fetch-event-source 自动重连（指数退避: 500ms, 1s, 2s）
    - 验证状态恢复
+   - 验证最大重试次数限制（3 次）
 
 #### E2E 测试脚本（Playwright）
 
 ```typescript
-// tests/e2e/research-flow.spec.ts
+// tests/e2e/research-flow.spec.ts ⚠️ (已更新以匹配 Phase 3 新架构)
 import { test, expect } from '@playwright/test';
 
-test.describe('研究流程', () => {
+test.describe('研究流程 (Phase 3 新架构)', () => {
   test('完整研究流程', async ({ page }) => {
     // 1. 访问首页
     await page.goto('http://localhost:3000');
-    
+
     // 2. 登录（如需要）
     // await page.click('text=登录');
     // ...
-    
-    // 3. 发起研究
-    await page.fill('[placeholder="输入消息..."]', '研究人工智能的发展历史');
+
+    // 3. 与 AI 对话，让 AI 建议研究
+    await page.fill('[placeholder="输入消息..."]', 'Tell me about quantum computing');
     await page.click('button[type="submit"]');
-    
-    // 4. 等待 AI 响应
-    await page.waitForSelector('text=正在启动研究任务');
-    
-    // 5. 验证进度显示
+
+    // 4. 等待 AI 响应（包含研究关键词）
+    await page.waitForSelector('text=/can.*research/i', { timeout: 30000 });
+
+    // 5. 验证 ResearchButton 显示（sticky 定位在聊天输入框上方）
+    await page.waitForSelector('[data-testid="research-button"]');
+    const button = page.locator('[data-testid="research-button"]');
+    expect(await button.isVisible()).toBe(true);
+
+    // 6. 点击 ResearchButton 发起研究
+    await button.click();
+
+    // 7. 验证 ResearchPanel 切换到 ResearchProgress
     await page.waitForSelector('[data-testid="research-progress"]');
-    const progress = await page.textContent('[data-testid="research-progress"]');
-    expect(progress).toContain('步骤');
-    
-    // 6. 等待研究完成
-    await page.waitForSelector('text=研究完成', { timeout: 120000 });
-    
-    // 7. 验证报告生成
+    const progress = page.locator('[data-testid="research-progress"]');
+    expect(await progress.isVisible()).toBe(true);
+
+    // 8. 验证进度更新（检查 events 数组渲染）
+    await page.waitForSelector('text=/Step.*\\/.*:/i');
+    const steps = await page.locator('[data-testid="progress-step"]').count();
+    expect(steps).toBeGreaterThan(0);
+
+    // 9. 等待研究完成（status 变为 completed）
+    await page.waitForSelector('[data-testid="research-completed"]', { timeout: 120000 });
+
+    // 10. 验证 ResearchPanel 关闭
+    await expect(progress).not.toBeVisible();
+
+    // 11. 验证 Artifact 自动创建
     await page.waitForSelector('[data-testid="artifact"]');
-    const report = await page.textContent('[data-testid="artifact"]');
-    expect(report).toContain('人工智能');
-    
-    // 8. 追问
-    await page.fill('[placeholder="输入消息..."]', '补充深度学习的内容');
+    const artifact = page.locator('[data-testid="artifact"]');
+    expect(await artifact.isVisible()).toBe(true);
+
+    // 12. 验证报告内容
+    const report = await artifact.textContent();
+    expect(report).toContain('quantum');
+
+    // 13. 追问更新报告
+    await page.fill('[placeholder="输入消息..."]', 'Add more details about quantum entanglement');
     await page.click('button[type="submit"]');
-    
-    // 9. 验证报告更新
-    await page.waitForSelector('text=报告已更新');
+
+    // 14. 验证报告更新
+    await page.waitForSelector('text=/updated|entanglement/i', { timeout: 60000 });
   });
   
   test('错误处理', async ({ page }) => {

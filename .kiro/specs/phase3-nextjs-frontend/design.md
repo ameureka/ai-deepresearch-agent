@@ -18,24 +18,36 @@
 Phase 3 的设计目标是改造 AI Chatbot 为研究助手：
 
 1. **保留核心**: 对话界面、Artifacts 系统
-2. **添加研究**: startResearch 工具、实时进度
+2. **添加研究**: 用户触发研究、实时进度显示
 3. **简化实现**: MVP 原则，3 周完成
 4. **用户体验**: 流畅的研究体验
+
+### 架构变更说明 ⚠️
+
+**原架构问题**: AI SDK 工具调用模式（startResearch）不适合长时间 SSE 连接，execute 函数返回后会导致 SSE 流关闭
+
+**新架构方案**: 用户手动触发 + 直接 SSE 订阅
+- 用户点击 ResearchButton 发起研究
+- useResearchProgress Hook 直接 POST SSE 连接
+- Hook 通过 onComplete 回调通知父组件
+- 父组件通过 `sendMessage` (from `useChat`) 发送报告给 AI
+- AI 调用 createDocument 生成 Artifact
 
 ### MVP 原则
 
 **"保留核心，简化实现，快速上线"**
 
 **包含**:
-- ✅ startResearch 工具
-- ✅ useResearchProgress Hook
-- ✅ API 代理路由（1 个）
+- ✅ ResearchButton 组件（用户触发）
+- ✅ useResearchProgress Hook（接受 prompt）
+- ✅ API 代理路由（仅 POST）
 - ✅ ResearchProgress 组件
 - ✅ 数据库 Schema 扩展
 - ✅ 聊天流程改造
 - ✅ Artifact 集成
 
 **不包含**（延后）:
+- ❌ startResearch 工具（架构调整，已删除）
 - ❌ traceId 追踪
 - ❌ 复杂心跳机制
 - ❌ 回退机制
@@ -48,14 +60,18 @@ Phase 3 的设计目标是改造 AI Chatbot 为研究助手：
 
 ### 技术方案
 
-**工具调用 + SSE 订阅的混合架构**
+**用户触发 + 直接 SSE 订阅架构**
 
 ```
-用户输入 → AI 理解意图 → 调用 startResearch 工具（返回 taskId）
+用户输入（包含研究关键词）→ 聊天界面检测关键词 → 显示 ResearchButton
   ↓
-前端订阅 SSE（/api/research/stream）→ 实时显示进度
+用户点击按钮 → useResearchProgress Hook 发起 POST SSE 连接
   ↓
-研究完成 → AI 调用 createDocument → 生成 Artifact 报告
+实时接收进度事件 → ResearchProgress 组件显示进度
+  ↓
+研究完成 → Hook 调用 onComplete 回调 → 父组件通过 sendMessage 发送报告给 AI
+  ↓
+AI 调用 createDocument → 生成 Artifact 报告
   ↓
 用户追问 → AI 调用 updateDocument → 更新报告
 ```
@@ -69,48 +85,55 @@ Phase 3 的设计目标是改造 AI Chatbot 为研究助手：
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │              Chat Interface                       │   │
-│  │  - User Input                                     │   │
+│  │  - User Input (关键词检测)                        │   │
+│  │  - ResearchButton (用户触发) ⭐ 新增              │   │
 │  │  - Message List                                   │   │
 │  │  - ResearchProgress Component                    │   │
-│  └────────────────┬─────────────────────────────────┘   │
-│                   │                                       │
-│                   ▼                                       │
+│  └────────┬─────────────────────────┬─────────────────┘   │
+│           │                         │                     │
+│           │                         ▼                     │
+│           │         ┌────────────────────────────┐       │
+│           │         │  useResearchProgress Hook  │       │
+│           │         │  - fetch-event-source      │       │
+│           │         │  - POST SSE Connection     │       │
+│           │         │  - State Management        │       │
+│           │         │  - onComplete Callback     │       │
+│           │         └──────────┬─────────────────┘       │
+│           │                    │                         │
+│           │                    ▼                         │
+│           │         ┌────────────────────────────┐       │
+│           │         │    API Proxy Route         │       │
+│           │         │ POST /api/research/stream  │       │
+│           │         └──────────┬─────────────────┘       │
+│           │                    │                         │
+│           │                    ▼                         │
+│           │         ┌────────────────────────────┐       │
+│           │         │   FastAPI Backend          │       │
+│           │         │  POST /api/research/stream │       │
+│           │         │  (Phase 2 API)             │       │
+│           │         └──────────┬─────────────────┘       │
+│           │                    │                         │
+│           │                    │ SSE Events              │
+│           │                    │ (start/plan/progress/   │
+│           │                    │  done/error)            │
+│           │                    ▼                         │
+│           │         ┌────────────────────────────┐       │
+│           │         │ ResearchProgress Component │       │
+│           │         │  - Status Display          │       │
+│           │         │  - Progress List           │       │
+│           │         │  - Error Display           │       │
+│           │         └────────────────────────────┘       │
+│           │                                               │
+│           │ (研究完成后，sendMessage 发送报告)            │
+│           ▼                                               │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │           AI SDK (streamText)                     │   │
 │  │  - System Prompt                                  │   │
-│  │  - Tools: startResearch, createDocument, etc.    │   │
-│  └────────┬─────────────────────┬───────────────────┘   │
-│           │                     │                         │
-│           ▼                     ▼                         │
-│  ┌────────────────┐   ┌────────────────────────┐        │
-│  │ startResearch  │   │   createDocument       │        │
-│  │     Tool       │   │       Tool             │        │
-│  └────────┬───────┘   └────────────────────────┘        │
-│           │                                               │
-│           ▼                                               │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │         API Proxy Route                           │   │
-│  │  POST /api/research/stream                        │   │
-│  │  GET  /api/research/stream?taskId=xxx            │   │
+│  │  - Tools: createDocument, updateDocument         │   │
+│  │  - 接收报告，调用 createDocument                  │   │
 │  └────────┬─────────────────────────────────────────┘   │
 │           │                                               │
 │           ▼                                               │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │      useResearchProgress Hook                     │   │
-│  │  - EventSource Connection                         │   │
-│  │  - Event Handling                                 │   │
-│  │  - State Management                               │   │
-│  │  - Reconnection Logic                             │   │
-│  └────────┬─────────────────────────────────────────┘   │
-│           │                                               │
-│           ▼                                               │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │      ResearchProgress Component                   │   │
-│  │  - Status Display                                 │   │
-│  │  - Progress List                                  │   │
-│  │  - Error Display                                  │   │
-│  └──────────────────────────────────────────────────┘   │
-│                                                           │
 │  ┌──────────────────────────────────────────────────┐   │
 │  │              Artifact Display                     │   │
 │  │  - Research Report                                │   │
@@ -124,96 +147,105 @@ Phase 3 的设计目标是改造 AI Chatbot 为研究助手：
 │  │  - Save/Query Functions                           │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                           │
-└───────────────────────┬───────────────────────────────────┘
-                        │
-                        ▼
-              ┌─────────────────────┐
-              │   FastAPI Backend   │
-              │  (Phase 2 API)      │
-              └─────────────────────┘
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 组件设计
 
-### 1. startResearch 工具
+### ~~1. startResearch 工具~~ (已删除 - 架构调整)
 
-**文件**: `lib/ai/tools/start-research.ts`
+**变更说明**:
+- **原设计问题**: AI SDK 工具调用模式不适合长时间 SSE 连接，execute 函数返回后会导致 SSE 流关闭
+- **解决方案**: 采用用户手动触发 + 直接 SSE 订阅的架构（见组件 7: ResearchButton）
+- **影响**: 不再需要 taskId，Hook 直接接受 prompt 参数发起研究
 
-**职责**: 启动研究任务，立即返回 taskId
+### 1. ResearchButton 组件 ⭐ (新增)
+
+**文件**: `components/research-button.tsx`
+
+**职责**: 用户手动触发研究任务
 
 **接口设计**:
 
 ```typescript
-import { tool } from 'ai';
-import { z } from 'zod';
+'use client';
 
-export const startResearch = tool({
-  description: 'Start a comprehensive research task on a given topic',
-  inputSchema: z.object({
-    topic: z.string().describe('The research topic or question'),
-  }),
-  execute: async ({ topic }) => {
-    const RESEARCH_API = process.env.RESEARCH_API_URL!;
-    
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
+
+interface ResearchButtonProps {
+  prompt: string;  // 从用户输入中提取的研究主题
+  onStart: (prompt: string) => void;  // 启动研究的回调
+  disabled?: boolean;
+}
+
+export function ResearchButton({ prompt, onStart, disabled }: ResearchButtonProps) {
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleClick = async () => {
+    setIsStarting(true);
     try {
-      const res = await fetch(`${RESEARCH_API}/api/research/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: topic }),
-      });
-      
-      if (!res.ok) {
-        throw new Error(`Research API error: ${res.status}`);
-      }
-      
-      // 从响应头或首个事件中获取 taskId
-      const reader = res.body?.getReader();
-      const { value } = await reader!.read();
-      const text = new TextDecoder().decode(value);
-      
-      // 解析首个事件获取 taskId
-      const firstEvent = JSON.parse(text.split('data: ')[1]);
-      const taskId = firstEvent.taskId || generateUUID();
-      
-      return {
-        taskId,
-        status: 'started',
-        message: `Research task started for: ${topic}`
-      };
-    } catch (error) {
-      console.error('startResearch error:', error);
-      return {
-        taskId: null,
-        status: 'failed',
-        error: error.message
-      };
+      await onStart(prompt);
+    } finally {
+      setIsStarting(false);
     }
-  },
-});
+  };
 
-function generateUUID(): string {
-  return crypto.randomUUID();
+  return (
+    <Button
+      onClick={handleClick}
+      disabled={disabled || isStarting}
+      variant="outline"
+      size="sm"
+      className="gap-2"
+    >
+      <Sparkles className="h-4 w-4" />
+      {isStarting ? 'Starting research...' : 'Start Research'}
+    </Button>
+  );
+}
+```
+
+**关键词检测逻辑**:
+
+```typescript
+// 在聊天界面中检测研究关键词
+function detectResearchIntent(message: string): string | null {
+  const keywords = ['research', '研究', 'investigate', '调查', 'analyze', '分析'];
+  const lowerMsg = message.toLowerCase();
+
+  for (const keyword of keywords) {
+    if (lowerMsg.includes(keyword)) {
+      return message;  // 返回完整消息作为 prompt
+    }
+  }
+
+  return null;
 }
 ```
 
 **关键点**:
-- 立即返回，不等待完成
-- 返回 taskId 供前端订阅
-- 简单的错误处理
-- 不阻塞 AI 流式响应
+- 简单的按钮组件，用户主动触发
+- 关键词检测决定是否显示
+- 状态管理（loading/disabled）
+- 移动端友好的设计
 
 ### 2. useResearchProgress Hook
 
 **文件**: `hooks/use-research-progress.ts`
 
-**职责**: 订阅 SSE，管理进度状态，处理重连
+**职责**: 直接发起 POST SSE 连接，管理进度状态，处理重连
+
+**架构变更**: 不再接受 taskId，改为接受 prompt 参数直接发起研究
 
 **接口设计**:
 
 ```typescript
 import { useState, useEffect } from 'react';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 type ProgressEvent = {
   type: 'start' | 'plan' | 'progress' | 'done' | 'error';
@@ -222,104 +254,136 @@ type ProgressEvent = {
 
 type ResearchStatus = 'idle' | 'running' | 'completed' | 'failed';
 
-export function useResearchProgress(taskId: string | null) {
+interface UseResearchProgressProps {
+  prompt: string | null;
+  onComplete?: (report: string) => void;
+}
+
+export function useResearchProgress({ prompt, onComplete }: UseResearchProgressProps) {
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   const [status, setStatus] = useState<ResearchStatus>('idle');
   const [report, setReport] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    if (!taskId) return;
-    
-    let retries = 0;
-    const MAX_RETRIES = 3;
-    let eventSource: EventSource | null = null;
-    
-    const connect = () => {
-      // 通过 Next.js API 代理连接
-      const url = `/api/research/stream?taskId=${taskId}`;
-      eventSource = new EventSource(url);
-      
-      eventSource.onopen = () => {
-        console.log('SSE connected');
-        setStatus('running');
-        retries = 0;  // 重置重试计数
-      };
-      
-      eventSource.onmessage = (e) => {
-        try {
-          const event: ProgressEvent = JSON.parse(e.data);
-          
-          // 添加到事件列表
-          setEvents(prev => [...prev, event]);
-          
-          // 处理不同类型的事件
-          switch (event.type) {
-            case 'start':
-              setStatus('running');
-              break;
-            case 'progress':
-              // 更新进度
-              break;
-            case 'done':
-              setStatus('completed');
-              setReport(event.data.report);
-              eventSource?.close();
-              break;
-            case 'error':
-              setStatus('failed');
-              setError(event.data.message);
-              eventSource?.close();
-              break;
-          }
-        } catch (err) {
-          console.error('Failed to parse SSE event:', err);
-        }
-      };
-      
-      eventSource.onerror = (err) => {
-        console.error('SSE error:', err);
-        eventSource?.close();
-        
-        // 重连逻辑（指数退避）
-        if (retries < MAX_RETRIES) {
-          retries++;
-          const delay = 500 * Math.pow(2, retries - 1);  // 500ms, 1s, 2s
-          console.log(`Reconnecting in ${delay}ms (attempt ${retries}/${MAX_RETRIES})`);
-          setTimeout(connect, delay);
-        } else {
-          setStatus('failed');
-          setError('Connection failed after 3 retries');
-        }
-      };
+    if (!prompt) return;
+
+    let abortController = new AbortController();
+
+    const startResearch = async () => {
+      setStatus('running');
+
+      try {
+        await fetchEventSource('/api/research/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+          signal: abortController.signal,
+
+          onopen: async (response) => {
+            if (response.ok) {
+              console.log('SSE connected');
+            } else {
+              throw new Error(`SSE error: ${response.status}`);
+            }
+          },
+
+          onmessage: (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              const progressEvent: ProgressEvent = {
+                type: event.event as any,
+                data,
+              };
+
+              setEvents(prev => [...prev, progressEvent]);
+
+              switch (event.event) {
+                case 'start':
+                  setStatus('running');
+                  break;
+                case 'done':
+                  setStatus('completed');
+                  setReport(data.report);
+
+                  // 调用回调函数，由父组件通过 sendMessage 发送给 AI
+                  if (onComplete) {
+                    onComplete(data.report);
+                  }
+                  break;
+                case 'error':
+                  setStatus('failed');
+                  setError(data.message);
+                  break;
+              }
+            } catch (err) {
+              console.error('Failed to parse SSE event:', err);
+            }
+          },
+
+          onerror: (err) => {
+            console.error('SSE error:', err);
+            setStatus('failed');
+            setError('Connection failed');
+            throw err;  // 让 fetch-event-source 处理重连
+          },
+        });
+      } catch (err) {
+        console.error('Research error:', err);
+        setStatus('failed');
+        setError('Research failed');
+      }
     };
-    
-    setStatus('running');
-    connect();
-    
-    // 清理函数
+
+    startResearch();
+
     return () => {
-      eventSource?.close();
+      abortController.abort();
       setStatus('idle');
     };
-  }, [taskId]);
-  
+  }, [prompt, onComplete]);
+
   return { events, status, report, error };
 }
 ```
 
 **关键点**:
-- 自动重连（最多 3 次）
-- 指数退避策略（500ms, 1s, 2s）
+- ⚠️ **不使用 `useUIState`**: 该应用使用 `useChat` Hook，不是 `useUIState`/`useActions` 模式
+- ✅ **使用回调函数**: 通过 `onComplete` 回调将报告传递给父组件
+- ✅ **父组件责任**: 父组件（Message/Chat）负责调用 `sendMessage` 发送报告给 AI
+- 使用 fetch-event-source 支持 POST SSE
+- 直接发起研究，无需 taskId
+- 使用 AbortController 管理连接生命周期
+- fetch-event-source 内置重连机制
 - 状态管理清晰
-- 错误处理完善
 - 组件卸载时清理
+
+**集成示例** (在 Message 组件中):
+```typescript
+import { useChat } from 'ai/react';
+
+const { sendMessage } = useChat();
+const { events, status } = useResearchProgress({
+  prompt: researchPrompt,
+  onComplete: (report) => {
+    // 使用 sendMessage 发送报告给 AI
+    sendMessage({
+      role: 'user',
+      parts: [{ type: 'text', text: `Research completed:\n\n${report}` }]
+    });
+  }
+});
+```
 
 ### 3. API 代理路由
 
 **文件**: `app/api/research/stream/route.ts`
 
 **职责**: 代理 FastAPI 的 SSE 流，处理 CORS
+
+**架构简化**: 仅需简单的 POST 代理，无需 GET 接口（fetch-event-source 支持 POST SSE）
 
 **接口设计**:
 
@@ -331,7 +395,14 @@ export const runtime = 'nodejs';  // 使用 Node.js runtime，不用 edge
 export async function POST(request: NextRequest) {
   try {
     const { prompt } = await request.json();
-    
+
+    if (!prompt || prompt.length < 10) {
+      return new Response(
+        JSON.stringify({ error: 'Prompt must be at least 10 characters' }),
+        { status: 400 }
+      );
+    }
+
     const RESEARCH_API = process.env.RESEARCH_API_URL;
     if (!RESEARCH_API) {
       return new Response(
@@ -339,7 +410,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     // 代理到 FastAPI
     const response = await fetch(`${RESEARCH_API}/api/research/stream`, {
       method: 'POST',
@@ -348,14 +419,14 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({ prompt }),
     });
-    
+
     if (!response.ok) {
       return new Response(
         JSON.stringify({ error: `FastAPI error: ${response.status}` }),
         { status: response.status }
       );
     }
-    
+
     // 返回 SSE 流
     return new Response(response.body, {
       headers: {
@@ -363,6 +434,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',  // 禁用 Nginx 缓冲
+        'Access-Control-Allow-Origin': '*',  // CORS
       },
     });
   } catch (error) {
@@ -373,33 +445,83 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// 支持 GET 方法（用于 EventSource）
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const taskId = searchParams.get('taskId');
-  const prompt = searchParams.get('prompt');
-  
-  if (!prompt && !taskId) {
-    return new Response('Missing prompt or taskId', { status: 400 });
-  }
-  
-  // 如果有 taskId，可以从数据库恢复
-  // 如果有 prompt，启动新任务
-  
-  // 简化实现：直接代理
-  return POST(request);
-}
 ```
 
 **关键点**:
-- 一个路由处理所有请求
-- 支持 POST 和 GET
+- 仅支持 POST（符合 Phase 2 API）
+- 简化实现，无需 GET 端点
+- 参数验证（prompt 长度）
 - 处理 CORS
 - 错误处理
 - 禁用 Nginx 缓冲
 
-### 4. ResearchProgress 组件
+### 4. ResearchPanel 组件 ⭐ (新增)
+
+**文件**: `components/research-panel.tsx`
+
+**职责**: 统一管理 ResearchButton 和 ResearchProgress，提供 sticky 定位和动画
+
+**接口设计**:
+
+```typescript
+'use client';
+
+import { motion, AnimatePresence } from 'framer-motion';
+import { ResearchButton } from './research-button';
+import { ResearchProgress } from './research-progress';
+
+interface ResearchPanelProps {
+  prompt: string;
+  isActive: boolean;
+  events: ProgressEvent[];
+  status: ResearchStatus;
+  onStart: (prompt: string) => void;
+}
+
+export function ResearchPanel({
+  prompt,
+  isActive,
+  events,
+  status,
+  onStart
+}: ResearchPanelProps) {
+  return (
+    <AnimatePresence>
+      {(isActive || status !== 'idle') && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.2 }}
+          className="sticky bottom-[72px] z-10 mx-4 mb-4"
+        >
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-[400px] overflow-y-auto">
+            {!isActive && (
+              <ResearchButton
+                prompt={prompt}
+                onStart={onStart}
+                disabled={status === 'running'}
+              />
+            )}
+            {isActive && (
+              <ResearchProgress events={events} status={status} />
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+```
+
+**关键点**:
+- 使用 sticky 定位在 bottom-[72px]（聊天输入框上方）
+- 使用 Framer Motion 实现滑入/滑出动画
+- 根据 isActive 状态切换显示 ResearchButton 或 ResearchProgress
+- 统一样式（白色背景、圆角、阴影）
+- 防止内容溢出（max-h-[400px] overflow-y-auto）
+
+### 5. ResearchProgress 组件
 
 **文件**: `components/research-progress.tsx`
 
@@ -477,18 +599,93 @@ export function ResearchProgress({ taskId }: { taskId: string | null }) {
 
 ### 5. 聊天流程改造
 
-**文件**: `app/(chat)/api/chat/route.ts`
+**文件**: `app/(chat)/page.tsx` 和 `app/(chat)/api/chat/route.ts`
 
-**职责**: 集成研究工具，约束 AI 行为
+**职责**: 集成 ResearchButton，接收研究报告，调用 createDocument
+
+**架构变更**:
+- **旧流程**: AI 调用 startResearch 工具 → 返回 taskId → Hook 订阅
+- **新流程**: 用户点击 ResearchButton → Hook 直接 SSE → AI 接收报告
 
 **关键修改**:
 
-```typescript
-import { startResearch } from '@/lib/ai/tools/start-research';
+**1. Chat 组件集成** (`components/chat.tsx`):
 
+```typescript
+'use client';
+
+import { useChat } from 'ai/react';
+import { ResearchButton } from '@/components/research-button';
+import { useResearchProgress } from '@/hooks/use-research-progress';
+import { ResearchProgress } from '@/components/research-progress';
+
+export function Chat({ id, initialMessages }: { id: string; initialMessages: ChatMessage[] }) {
+  const { messages, sendMessage, status } = useChat({ id, initialMessages });
+  const [researchPrompt, setResearchPrompt] = useState<string | null>(null);
+  const [showResearchUI, setShowResearchUI] = useState(false);
+
+  // 检测最后一条 AI 消息是否包含研究关键词
+  const lastAiMessage = useMemo(() => {
+    return messages.filter(m => m.role === 'assistant').pop();
+  }, [messages]);
+
+  const shouldShowResearchButton = useMemo(() => {
+    return lastAiMessage && detectResearchKeywords(lastAiMessage.content) && !researchPrompt;
+  }, [lastAiMessage, researchPrompt]);
+
+  const { events, status: researchStatus } = useResearchProgress({
+    prompt: researchPrompt,
+    onComplete: useCallback((report: string) => {
+      // 使用 sendMessage 将报告发送给 AI
+      sendMessage({
+        role: 'user',
+        parts: [{ type: 'text', text: `Research completed:\n\n${report}` }]
+      });
+      setResearchPrompt(null);
+      setShowResearchUI(false);
+    }, [sendMessage])
+  });
+
+  const handleStartResearch = (prompt: string) => {
+    setResearchPrompt(prompt);
+    setShowResearchUI(true);
+  };
+
+  return (
+    <>
+      <Messages messages={messages} ... />
+
+      {/* ResearchPanel - sticky 定位在聊天输入框上方 */}
+      {(shouldShowResearchButton || showResearchUI) && (
+        <ResearchPanel
+          prompt={extractResearchQuery(lastAiMessage?.content || '')}
+          isActive={showResearchUI}
+          events={events}
+          status={researchStatus}
+          onStart={handleStartResearch}
+        />
+      )}
+
+      <MultimodalInput ... />
+      <Artifact ... />
+    </>
+  );
+}
+```
+
+**关键点**:
+- ✅ 使用 `useChat` Hook 获取 `sendMessage` 函数
+- ✅ 在 `onComplete` 回调中通过 `sendMessage` 发送报告
+- ✅ ResearchPanel 集成在 Chat 组件中，使用 sticky 定位在聊天输入框上方
+- ✅ 检测最后一条 AI 消息（而非用户消息）是否包含研究关键词
+- ✅ 使用 ResearchPanel 统一管理 ResearchButton 和 ResearchProgress
+
+**2. AI Chat Route** (`app/(chat)/api/chat/route.ts`):
+
+```typescript
 export async function POST(request: Request) {
   // ... 现有代码 ...
-  
+
   const stream = createUIMessageStream({
     execute: ({ writer: dataStream }) => {
       const result = streamText({
@@ -499,20 +696,19 @@ export async function POST(request: Request) {
           // 现有工具
           createDocument: createDocument({ session, dataStream }),
           updateDocument: updateDocument({ session, dataStream }),
-          
-          // 新增研究工具
-          startResearch,  // ✅ 添加研究工具
+
+          // ❌ 不再需要 startResearch 工具
         },
         onFinish: async ({ usage }) => {
           dataStream.write({ type: "data-usage", data: usage });
         },
       });
-      
+
       result.consumeStream();
       dataStream.merge(result.toUIMessageStream());
     },
   });
-  
+
   return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
 }
 ```
@@ -521,43 +717,46 @@ export async function POST(request: Request) {
 
 **文件**: `lib/ai/prompts.ts`
 
+**架构变更**: AI 不再调用 startResearch，仅需处理接收到的研究报告
+
 **新增研究提示**:
 
 ```typescript
 export const systemPrompt = ({ selectedChatModel, requestHints }) => {
   const basePrompt = `You are a friendly AI research assistant.`;
-  
+
   const researchPrompt = `
-When users ask you to research a topic:
-1. Call the startResearch tool with the topic
-2. Inform the user that research has started
-3. Wait for the research to complete (the UI will show progress automatically)
-4. Once complete, call createDocument to create an Artifact with the report
-5. If users ask follow-up questions, call updateDocument to refine the report
+When you receive a research report (starting with "Research completed:"):
+1. Parse the report content
+2. Call createDocument to create an Artifact with the report
+3. Provide a brief summary to the user
+4. If users ask follow-up questions, call updateDocument to refine the report
 
 Example flow:
-User: "Research quantum computing"
-You: "I'll start researching quantum computing for you. This may take a few minutes..."
-[Call startResearch({ topic: "quantum computing" })]
-[System shows progress automatically]
-[When research completes, you receive the report]
-[Call createDocument({ title: "Quantum Computing Research", kind: "text", content: report })]
-You: "I've completed the research and created a report for you. What would you like to know more about?"
+[User clicks "Start Research" button in UI]
+[System automatically sends you: "Research completed:\n\n<report content>"]
+You: [Call createDocument({ title: "Research Report", kind: "text", content: report })]
+You: "I've created a research report for you. The key findings are... What would you like to know more about?"
+
+User: "Add more details about quantum entanglement"
+You: [Call updateDocument({ documentId, description: "add more details about quantum entanglement" })]
 
 Important:
-- Always call startResearch first
-- Don't try to research yourself
-- Wait for the tool to return before creating the document
-- The progress is shown automatically, you don't need to describe it
+- DO NOT try to research yourself
+- DO NOT call any research-starting tools
+- When you see "Research completed:", extract the report and call createDocument
+- The research progress is shown automatically in the UI
+- Focus on creating high-quality Artifacts from the reports
 `;
-  
+
   return `${basePrompt}\n\n${researchPrompt}\n\n${artifactsPrompt}`;
 };
 ```
 
 **关键点**:
-- 明确工具调用顺序
-- 避免 AI 自由发挥
+- AI 通过 sendMessage 被动接收报告
+- 不再需要主动调用工具启动研究
+- 专注于 createDocument 和 updateDocument
 - 保证流程一致性
 
 ---
@@ -777,13 +976,13 @@ const progressPercentage = useMemo(() => {
 ### 2. 连接管理
 
 ```typescript
-// 确保只有一个 EventSource 连接
+// 确保只有一个 SSE 连接
 useEffect(() => {
   // ...
   return () => {
-    eventSource?.close();  // 清理
+    abortController.abort();  // 清理
   };
-}, [taskId]);
+}, [prompt]);
 ```
 
 ### 3. 状态更新优化
@@ -839,41 +1038,45 @@ vercel env add NEXTAUTH_URL
 
 ## 附录
 
-### A. 事件流示例
+### A. 事件流示例 (新架构)
 
 ```
 用户: "研究量子计算"
   ↓
-AI: "我将为你研究量子计算..."
+[前端检测关键词 "研究" → 显示 ResearchButton]
   ↓
-[调用 startResearch({ topic: "量子计算" })]
+用户: [点击 "Start Research" 按钮]
   ↓
-返回: { taskId: "abc-123", status: "started" }
+[useResearchProgress Hook 发起 POST SSE 连接]
   ↓
-[前端订阅 SSE: /api/research/stream?taskId=abc-123]
+[POST /api/research/stream, body: { prompt: "研究量子计算" }]
   ↓
-接收事件:
+接收 SSE 事件:
   event: start
-  data: {"prompt": "量子计算"}
-  
+  data: {"prompt": "研究量子计算"}
+
   event: plan
   data: {"steps": ["搜索资料", "分析数据", "撰写报告"]}
-  
+
   event: progress
   data: {"step": 1, "total": 3, "message": "搜索资料"}
-  
+
   event: progress
   data: {"step": 2, "total": 3, "message": "分析数据"}
-  
+
   event: progress
   data: {"step": 3, "total": 3, "message": "撰写报告"}
-  
+
   event: done
   data: {"report": "# 量子计算研究报告\n\n..."}
   ↓
-[AI 调用 createDocument({ title: "量子计算研究", content: report })]
+[Hook 使用 sendMessage 发送报告给 AI]
   ↓
-AI: "研究完成！我已经创建了一份报告。"
+[系统消息: "Research completed:\n\n<report>"]
+  ↓
+AI: [调用 createDocument({ title: "量子计算研究", content: report })]
+  ↓
+AI: "研究完成！我已经创建了一份报告。主要发现包括..."
 ```
 
 ### B. 组件层次结构
@@ -885,12 +1088,13 @@ App
 │   │   ├── Message List
 │   │   │   ├── User Message
 │   │   │   ├── AI Message
-│   │   │   └── ResearchProgress ← 新增
+│   │   │   ├── ResearchButton ← 新增（关键词检测后显示）
+│   │   │   └── ResearchProgress ← 新增（显示进度）
 │   │   └── Input Area
 │   └── Artifact Display
-│       └── Research Report ← 新增
+│       └── Research Report ← 新增（AI 创建的 Artifact）
 └── API Routes
-    └── /api/research/stream ← 新增
+    └── /api/research/stream ← 新增（POST 代理）
 ```
 
 ---

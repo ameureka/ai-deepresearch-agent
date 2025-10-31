@@ -4,20 +4,33 @@
 
 - **项目**: AI 研究助手
 - **阶段**: Phase 3 - Next.js 前端改造
-- **版本**: 1.0
+- **版本**: 2.0（架构调整）
 - **创建日期**: 2025-10-30
-- **预计时间**: 3 周（120 小时）
+- **更新日期**: 2025-10-31
+- **预计时间**: 3 周（108 小时）⚠️ 已优化
 - **状态**: 待执行
-- **依赖**: Phase 1 + Phase 2 必须完成
+- **依赖**: Phase 2 必须完成
+
+## 架构变更说明 ⚠️
+
+**重大变更**: AI SDK 工具调用模式（startResearch）已被用户触发模式替代
+
+**原因**: execute 函数返回后会导致 SSE 流关闭，不适合长时间连接
+
+**新架构**:
+- ~~startResearch 工具~~（已删除）
+- ResearchButton 组件（用户手动触发）
+- useResearchProgress Hook（接受 prompt，使用 fetch-event-source）
+- API 代理路由（仅 POST，无 GET）
 
 ---
 
 ## 任务概览
 
-本阶段包含 **80+ 个任务**，分为 **3 周**：
+本阶段包含 **70+ 个任务**（优化后），分为 **3 周**：
 
-**Week 1: 架构与工具桥接** (40 小时)
-**Week 2: 聊天流程与组件** (40 小时)
+**Week 1: 基础设施与组件** (32 小时) ⬇️ -8h
+**Week 2: 聊天流程与集成** (36 小时) ⬇️ -4h
 **Week 3: 数据库与完善** (40 小时)
 
 **标记说明**:
@@ -27,9 +40,9 @@
 
 ---
 
-## Week 1: 架构与工具桥接（40 小时）
+## Week 1: 基础设施与组件（32 小时）⚠️ 架构调整
 
-### Day 1: 环境准备与工具创建（8 小时）
+### Day 1: 环境准备与按钮组件（6 小时）⬇️ -2h
 
 #### - [ ] 1.1 配置环境变量
 - 在 `ai-chatbot-main` 目录创建 `.env.local` 文件
@@ -40,99 +53,82 @@
 - _需求: Requirement 11_
 - _预计时间: 30 分钟_
 
-#### - [ ] 1.2 创建 startResearch 工具文件
-- 创建目录 `lib/ai/tools/`
-- 创建文件 `lib/ai/tools/start-research.ts`
+#### ~~- [ ] 1.2-1.11 startResearch 工具~~（已删除 - 架构调整）
+**变更原因**: AI SDK 工具调用模式不适合长时间 SSE 连接
+**新方案**: 使用 ResearchButton 组件 + 用户手动触发
+
+#### - [ ] 1.2 安装 fetch-event-source 依赖 ⭐
+- 在 `ai-chatbot-main` 目录运行 `npm install @microsoft/fetch-event-source`
+- 验证依赖安装成功
+- 更新 `package.json`
+- _需求: Requirement 2_
+- _预计时间: 10 分钟_
+
+#### - [ ] 1.3 创建 ResearchButton 组件文件 ⭐
+- 创建目录 `components/` (如果不存在)
+- 创建文件 `components/research-button.tsx`
+- 添加 'use client' 指令
 - 添加文件头部注释和导入
-- 定义工具的基本结构
+- 导入必要的组件（Button, Sparkles from lucide-react）
+- _需求: Requirement 21_
+- _预计时间: 20 分钟_
+
+#### - [ ] 1.4 实现 ResearchButton 组件接口 ⭐
+- 定义 ResearchButtonProps 接口
+- 定义 prompt 参数（string 类型）
+- 定义 onStart 回调函数（(prompt: string) => void）
+- 定义 disabled 可选参数（boolean）
 - 添加 TypeScript 类型定义
-- _需求: Requirement 1_
+- _需求: Requirement 21_
+- _预计时间: 20 分钟_
+
+#### - [ ] 1.5 实现 ResearchButton 组件逻辑 ⭐
+- 使用 useState 管理 isStarting 状态
+- 实现 handleClick 异步函数
+- 在 handleClick 中调用 onStart 回调
+- 使用 try/finally 确保状态更新
+- 添加错误处理
+- _需求: Requirement 21_
 - _预计时间: 30 分钟_
 
-#### - [ ] 1.3 实现 startResearch 工具的 inputSchema
-- 使用 zod 定义 inputSchema
-- 定义 topic 字段（字符串类型，必需）
-- 添加字段描述
-- 添加验证规则
-- 测试 schema 验证
-- _需求: Requirement 1_
+#### - [ ] 1.6 实现 ResearchButton UI ⭐
+- 使用 Button 组件（variant="outline", size="sm"）
+- 添加 Sparkles 图标
+- 根据 isStarting 状态切换文本
+- 设置 disabled 状态（disabled || isStarting）
+- 添加 className="gap-2" 设置间距
+- _需求: Requirement 21_
+- _预计时间: 20 分钟_
+
+#### - [ ] 1.7 实现关键词检测逻辑 ⭐
+- 创建 detectResearchIntent 辅助函数
+- 定义研究关键词列表（research, 研究, investigate, 调查, analyze, 分析）
+- 实现关键词匹配逻辑（不区分大小写）
+- 返回完整消息作为 prompt
+- 如果未检测到关键词返回 null
+- _需求: Requirement 21_
 - _预计时间: 30 分钟_
 
-#### - [ ] 1.4 实现 startResearch 工具的 execute 函数
-- 实现 async execute 函数
-- 从环境变量读取 RESEARCH_API_URL
-- 验证 RESEARCH_API_URL 存在
-- 构建 API 请求 URL
-- 添加基础错误处理
-- _需求: Requirement 1_
-- _预计时间: 45 分钟_
-
-#### - [ ] 1.5 实现 API 请求逻辑
-- 使用 fetch 发送 POST 请求
-- 设置请求头
-- 构建请求体
-- 处理响应状态码
-- 添加超时处理
-- _需求: Requirement 1_
-- _预计时间: 1 小时_
-
-#### - [ ] 1.6 实现 taskId 提取逻辑
-- 获取响应 body 的 ReadableStream
-- 使用 getReader() 读取首个数据块
-- 使用 TextDecoder 解码数据
-- 解析 SSE 格式提取首个事件
-- 从事件数据中提取 taskId
-- 如果没有 taskId，生成 UUID
-- _需求: Requirement 1_
-- _预计时间: 1.5 小时_
-
-#### - [ ] 1.7 实现成功响应格式
-- 返回对象包含 taskId 字段
-- 返回对象包含 status: 'started'
-- 返回对象包含 message 字段
-- 添加 TypeScript 返回类型定义
-- 验证返回格式符合规范
-- _需求: Requirement 1_
-- _预计时间: 30 分钟_
-
-#### - [ ] 1.8 实现错误处理
-- 捕获 fetch 错误
-- 捕获 JSON 解析错误
-- 捕获网络错误
-- 返回错误格式
-- 记录错误到控制台
-- _需求: Requirement 1_
-- _预计时间: 45 分钟_
-
-#### - [ ] 1.9 实现 UUID 生成函数
-- 创建 generateUUID() 辅助函数
-- 使用 crypto.randomUUID()
-- 添加类型定义
-- 测试 UUID 生成
-- _需求: Requirement 1_
-- _预计时间: 15 分钟_
-
-#### - [ ] 1.10 添加工具文档和类型
+#### - [ ] 1.8 添加 ResearchButton 文档和类型 ⭐
 - 添加 JSDoc 注释
 - 添加使用示例注释
-- 导出工具
-- 添加完整的 TypeScript 类型
+- 导出组件
 - 验证类型检查通过
-- _需求: Requirement 1_
-- _预计时间: 30 分钟_
+- _需求: Requirement 21_
+- _预计时间: 20 分钟_
 
-#### - [ ] 1.11 测试 startResearch 工具
-- 创建测试文件
-- 测试成功调用场景
-- 测试 API 失败场景
-- 测试网络错误场景
-- 测试 taskId 生成
+#### - [ ] 1.9 测试 ResearchButton 组件 ⭐
+- 创建测试文件 `components/research-button.test.tsx`
+- 测试按钮渲染
+- 测试 onClick 调用 onStart
+- 测试 disabled 状态
+- 测试 loading 状态
 - 验证所有测试通过
-- _需求: Requirement 1, 17_
-- _预计时间: 1.5 小时_
+- _需求: Requirement 21, 17_
+- _预计时间: 1 小时_
 
 
-### Day 2: API 代理路由（8 小时）
+### Day 2: API 代理路由（6 小时）⬇️ -2h（简化架构）
 
 #### - [ ] 2.1 创建 API 路由目录结构
 - 创建目录 `app/api/research/stream/`
@@ -151,12 +147,12 @@
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
-#### - [ ] 2.3 实现请求体解析
+#### - [ ] 2.3 实现请求体解析和验证 ⚠️
 - 使用 request.json() 解析请求体
 - 提取 prompt 字段
-- 验证 prompt 存在
-- 验证 prompt 非空
+- 验证 prompt 存在且长度 >= 10 字符
 - 返回 400 错误（如果验证失败）
+- 添加验证错误消息
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
@@ -194,24 +190,21 @@
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
-#### - [ ] 2.8 配置 SSE 响应头
+#### - [ ] 2.8 配置 SSE 响应头（含 CORS）⚠️
 - 设置 Content-Type: text/event-stream
 - 设置 Cache-Control: no-cache, no-transform
 - 设置 Connection: keep-alive
 - 设置 X-Accel-Buffering: no
+- 设置 Access-Control-Allow-Origin: *
 - 验证响应头正确
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
-#### - [ ] 2.9 实现 GET 方法处理器
-- 定义 async GET 函数
-- 解析 URL 查询参数（taskId, prompt）
-- 验证参数存在
-- 调用 POST 处理器或实现独立逻辑
-- _需求: Requirement 3_
-- _预计时间: 45 分钟_
+#### ~~- [ ] 2.9 实现 GET 方法处理器~~（已删除 - 架构简化）
+**变更原因**: fetch-event-source 支持 POST SSE，无需 GET 端点
+**影响**: 减少代码复杂度，节省 45 分钟
 
-#### - [ ] 2.10 实现全局错误处理
+#### - [ ] 2.9 实现全局错误处理
 - 捕获所有未处理的异常
 - 返回 500 状态码
 - 返回 JSON 错误响应
@@ -220,20 +213,20 @@
 - _需求: Requirement 3_
 - _预计时间: 30 分钟_
 
-#### - [ ] 2.11 添加请求日志
+#### - [ ] 2.10 添加请求日志
 - 记录请求方法和 URL
-- 记录请求参数（prompt）
+- 记录请求参数（prompt 前 50 字符）
 - 记录响应状态
 - 使用 console.log
 - _需求: Requirement 3_
 - _预计时间: 20 分钟_
 
-#### - [ ] 2.12 测试 API 代理路由
+#### - [ ] 2.11 测试 API 代理路由 ⚠️
 - 启动 Next.js 开发服务器
-- 使用 curl 测试 POST 请求
-- 使用 curl 测试 GET 请求
+- 使用 curl 测试 POST 请求（仅 POST，无 GET）
 - 验证 SSE 流正常
-- 测试错误场景
+- 测试错误场景（缺少 prompt、prompt 太短）
+- 验证 CORS 响应头
 - _需求: Requirement 3_
 - _预计时间: 1.5 小时_
 
@@ -247,152 +240,148 @@
 - _需求: Requirement 3, 17_
 - _预计时间: 2 小时_
 
-### Day 3-4: useResearchProgress Hook（16 小时）
+### Day 3-4: useResearchProgress Hook（14 小时）⬇️ -2h（架构调整）
 
-#### - [ ] 3.1 创建 Hook 文件
+#### - [ ] 3.1 创建 Hook 文件 ⚠️ (API 更新)
 - 创建目录 `hooks/`
 - 创建文件 `hooks/use-research-progress.ts`
 - 添加文件头部注释
-- 导入必需的 React hooks
-- 定义基本结构
+- 导入必需的 React hooks（useState, useEffect）
+- 导入 fetch-event-source
+- ⚠️ **不导入** useUIState（该应用使用 useChat 模式）
 - _需求: Requirement 2_
 - _预计时间: 20 分钟_
 
-#### - [ ] 3.2 定义 TypeScript 类型
-- 定义 ProgressEvent 类型
-- 定义 ResearchStatus 类型
+#### - [ ] 3.2 定义 TypeScript 类型 ⚠️ (API 更新)
+- 定义 ProgressEvent 类型（type + data）
+- 定义 ResearchStatus 类型（idle/running/completed/failed）
+- 定义 Hook 参数接口：`UseResearchProgressProps`
+  - `prompt: string | null` ⭐ 不再是 taskId
+  - `onComplete?: (report: string) => void` ⭐ 回调函数
 - 定义 Hook 返回类型
 - 添加 JSDoc 注释
 - _需求: Requirement 2_
 - _预计时间: 30 分钟_
 
-#### - [ ] 3.3 实现状态管理
+#### - [ ] 3.3 实现状态管理 ⚠️ (API 更新)
 - 使用 useState 定义 events 状态
 - 使用 useState 定义 status 状态
 - 使用 useState 定义 report 状态
 - 使用 useState 定义 error 状态
+- ⚠️ **不使用** useUIState（改用 onComplete 回调）
 - 初始化所有状态
 - _需求: Requirement 2_
 - _预计时间: 30 分钟_
 
-#### - [ ] 3.4 实现 useEffect Hook 框架
-- 创建 useEffect，依赖 taskId
-- 添加 early return（taskId 为 null）
-- 定义清理函数
-- _需求: Requirement 2_
-- _预计时间: 20 分钟_
-
-#### - [ ] 3.5 实现重连状态管理
-- 定义 retries 变量
-- 定义 MAX_RETRIES 常量（3）
-- 定义 eventSource 变量
-- _需求: Requirement 2, 10_
-- _预计时间: 15 分钟_
-
-#### - [ ] 3.6 实现 connect 函数框架
-- 定义 connect 函数
-- 构建 SSE URL（/api/research/stream?taskId=xxx）
-- 创建 EventSource 实例
+#### - [ ] 3.4 实现 useEffect Hook 框架 ⚠️
+- 创建 useEffect，依赖 prompt ⭐ 不再依赖 taskId
+- 添加 early return（prompt 为 null）
+- 定义 AbortController ⭐ 替代 EventSource
+- 定义清理函数（abort）
 - _需求: Requirement 2_
 - _预计时间: 30 分钟_
 
-#### - [ ] 3.7 实现 onopen 事件处理
-- 定义 eventSource.onopen 处理器
-- 记录连接成功日志
+#### - [ ] 3.5 实现 startResearch 异步函数 ⚠️（架构重构）
+- 定义 async startResearch 函数
 - 设置 status 为 'running'
-- 重置 retries 计数
+- 使用 try-catch 错误处理
 - _需求: Requirement 2_
 - _预计时间: 20 分钟_
 
-#### - [ ] 3.8 实现 onmessage 事件处理框架
-- 定义 eventSource.onmessage 处理器
+#### - [ ] 3.6 实现 fetch-event-source 调用 ⭐（新架构）
+- 调用 fetchEventSource('/api/research/stream')
+- 设置 method: 'POST'
+- 设置 headers: Content-Type: application/json
+- 设置 body: JSON.stringify({ prompt })
+- 设置 signal: abortController.signal
+- _需求: Requirement 2_
+- _预计时间: 40 分钟_
+
+#### - [ ] 3.7 实现 onopen 回调 ⚠️
+- 定义 onopen 回调函数
+- 检查 response.ok
+- 如果失败抛出错误
+- 记录连接成功日志
+- _需求: Requirement 2_
+- _预计时间: 30 分钟_
+
+#### - [ ] 3.8 实现 onmessage 回调框架 ⚠️
+- 定义 onmessage 回调函数
 - 添加 try-catch 错误处理
-- 解析事件数据（JSON.parse）
+- 解析 event.data（JSON.parse）
+- 构建 ProgressEvent 对象（type: event.event, data）
 - 添加事件到 events 列表
 - _需求: Requirement 2_
-- _预计时间: 30 分钟_
+- _预计时间: 40 分钟_
 
 #### - [ ] 3.9 实现 start 事件处理
-- 检测 event.type === 'start'
+- 检测 event.event === 'start'
 - 设置 status 为 'running'
 - 记录日志
 - _需求: Requirement 2_
 - _预计时间: 15 分钟_
 
-#### - [ ] 3.10 实现 plan 事件处理
-- 检测 event.type === 'plan'
+#### ~~- [ ] 3.10 实现 plan 事件处理~~（保留，无变更）
+- 检测 event.event === 'plan'
 - 提取 steps 数据
 - 可选：保存 steps 到状态
 - 记录日志
 - _需求: Requirement 2_
 - _预计时间: 20 分钟_
 
-#### - [ ] 3.11 实现 progress 事件处理
-- 检测 event.type === 'progress'
+#### ~~- [ ] 3.11 实现 progress 事件处理~~（保留，无变更）
+- 检测 event.event === 'progress'
 - 提取 step, total, message 数据
 - 可选：更新进度百分比
 - 记录日志
 - _需求: Requirement 2_
 - _预计时间: 20 分钟_
 
-#### - [ ] 3.12 实现 done 事件处理
-- 检测 event.type === 'done'
+#### - [ ] 3.12 实现 done 事件处理 ⚠️ (关键 API 变更)
+- 检测 event.event === 'done'
 - 设置 status 为 'completed'
 - 提取并保存 report
-- 关闭 EventSource 连接
+- ⚠️ **调用 onComplete 回调函数**：`if (onComplete) onComplete(data.report)`
+- ⚠️ **不直接调用** setMessages（改由父组件通过 sendMessage 发送）
 - 记录日志
-- _需求: Requirement 2_
-- _预计时间: 30 分钟_
+- _需求: Requirement 2, 5_
+- _预计时间: 40 分钟_
 
-#### - [ ] 3.13 实现 error 事件处理
-- 检测 event.type === 'error'
+#### - [ ] 3.13 实现 error 事件处理 ⚠️
+- 检测 event.event === 'error'
 - 设置 status 为 'failed'
 - 提取并保存 error 消息
-- 关闭 EventSource 连接
-- 记录日志
+- 记录日志（无需关闭，fetch-event-source 自动处理）
 - _需求: Requirement 2_
-- _预计时间: 30 分钟_
-
-#### - [ ] 3.14 实现 onerror 事件处理框架
-- 定义 eventSource.onerror 处理器
-- 记录错误日志
-- 关闭当前连接
-- _需求: Requirement 2, 10_
 - _预计时间: 20 分钟_
 
-#### - [ ] 3.15 实现重连逻辑
-- 检查 retries < MAX_RETRIES
-- 增加 retries 计数
-- 计算延迟时间（指数退避）
-- 使用 setTimeout 延迟重连
-- 调用 connect 函数
-- _需求: Requirement 10_
-- _预计时间: 45 分钟_
-
-#### - [ ] 3.16 实现最大重试处理
-- 检查 retries >= MAX_RETRIES
+#### - [ ] 3.14 实现 onerror 回调 ⚠️（简化）
+- 定义 onerror 回调函数
+- 记录错误日志
 - 设置 status 为 'failed'
 - 设置 error 消息
-- 记录日志
-- _需求: Requirement 10_
-- _预计时间: 20 分钟_
-
-#### - [ ] 3.17 实现指数退避策略
-- 计算延迟: 500 * Math.pow(2, retries - 1)
-- 第 1 次: 500ms
-- 第 2 次: 1000ms
-- 第 3 次: 2000ms
-- 记录重连尝试日志
-- _需求: Requirement 10_
+- 抛出错误（让 fetch-event-source 处理重连）
+- _需求: Requirement 2, 10_
 - _预计时间: 30 分钟_
 
-#### - [ ] 3.18 实现清理函数
+#### ~~- [ ] 3.15 实现重连逻辑~~（已删除 - fetch-event-source 内置）
+**变更原因**: fetch-event-source 库内置重连机制，无需手动实现
+**节省时间**: 45 分钟
+
+#### ~~- [ ] 3.16 实现最大重试处理~~（已删除 - fetch-event-source 内置）
+**变更原因**: fetch-event-source 库内置重连机制
+**节省时间**: 20 分钟
+
+#### ~~- [ ] 3.17 实现指数退避策略~~（已删除 - fetch-event-source 内置）
+**变更原因**: fetch-event-source 库内置指数退避
+**节省时间**: 30 分钟
+
+#### - [ ] 3.16 实现清理函数 ⚠️（重新编号）
 - 在 useEffect 返回清理函数
-- 关闭 EventSource 连接
+- 调用 abortController.abort() ⭐ 替代 eventSource.close()
 - 重置 status 为 'idle'
-- 清理定时器（如果有）
 - _需求: Requirement 2_
-- _预计时间: 30 分钟_
+- _预计时间: 20 分钟_
 
 #### - [ ] 3.19 实现 Hook 返回值
 - 返回对象包含 events
@@ -506,104 +495,127 @@
 
 ---
 
-## Week 2: 聊天流程与组件（40 小时）
+## Week 2: 聊天流程与组件（36 小时）⬇️ -4h（架构调整）
 
-### Day 6-7: 聊天流程改造（16 小时）
+### 架构变更摘要 ⚠️
+**Week 2 主要变更**:
+- ~~导入 startResearch 工具~~（已删除）
+- 集成 ResearchButton 组件到聊天界面
+- 实现关键词检测逻辑
+- System Prompt 更新（不调用工具，仅处理报告）
+- 减少时间：4 小时（无需工具集成，流程简化）
 
-#### - [ ] 5.1 备份现有聊天代码
+### Day 6-7: Chat 组件集成（14 小时）⬇️ -2h
+
+#### - [ ] 5.1 备份现有代码
+- 备份 `components/chat.tsx`
 - 备份 `app/(chat)/api/chat/route.ts`
 - 创建 git 分支
 - 记录当前功能状态
 - _需求: Requirement 5_
 - _预计时间: 15 分钟_
 
-#### - [ ] 5.2 导入 startResearch 工具
-- 在 chat route 中导入 startResearch
-- 验证导入路径正确
-- 验证类型定义正确
-- _需求: Requirement 5_
-- _预计时间: 10 分钟_
+#### ~~- [ ] 5.2 导入 startResearch 工具~~（已删除 - 架构调整）
+**变更原因**: 不再使用 AI SDK 工具调用模式启动研究
+**影响**: 无需在 chat route 中添加 startResearch 工具
 
-#### - [ ] 5.3 集成 startResearch 到 tools 对象
-- 找到 streamText 的 tools 配置
-- 添加 startResearch 到 tools 对象
-- 保持现有工具（createDocument, updateDocument）
-- 验证工具注册成功
-- _需求: Requirement 5_
+#### - [ ] 5.3 Chat 组件准备 ⭐ (新架构)
+- 打开 `components/chat.tsx`
+- 导入必需的 hooks：`useState`, `useMemo`, `useCallback`
+- 导入组件：`ResearchPanel`
+- 导入 Hook：`useResearchProgress`
+- 导入辅助函数：`detectResearchKeywords`, `extractResearchQuery`
+- 备份原有代码
+- _需求: Requirement 5, 22_
 - _预计时间: 20 分钟_
 
-#### - [ ] 5.4 更新 System Prompt（准备）
-- 找到 System Prompt 配置位置
-- 备份现有 System Prompt
-- 准备研究相关的提示词
-- _需求: Requirement 6_
+#### - [ ] 5.4 实现辅助函数 ⭐ (新架构)
+- 创建 `lib/research-utils.ts` 文件
+- 实现 `detectResearchKeywords` 函数（检测 AI 消息关键词）
+- 实现 `extractResearchQuery` 函数（提取研究问题）
+- 检测关键词：research, investigate, study, analyze, 研究, 调查, 探索
+- 添加单元测试
+- _需求: Requirement 21_
+- _预计时间: 45 分钟_
+
+#### - [ ] 5.5 集成 useResearchProgress Hook ⚠️ (API 更新)
+- 在 Chat 组件中使用 `useChat` 获取 `sendMessage`
+- 使用 useState 管理 `researchPrompt` 和 `showResearchUI` 状态
+- 使用 useMemo 检测最后一条 AI 消息是否包含研究关键词
+- 调用 `useResearchProgress` Hook 并传入：
+  - `prompt: researchPrompt`
+  - `onComplete: (report) => sendMessage({...})` ⭐ 关键集成点
+- 实现 sendMessage 调用格式：
+  ```typescript
+  sendMessage({
+    role: 'user',
+    parts: [{ type: 'text', text: `Research completed:\n\n${report}` }]
+  });
+  ```
+- _需求: Requirement 2, 5_
+- _预计时间: 2 小时_
+
+#### - [ ] 5.6 渲染 ResearchPanel 组件 ⭐ (新架构)
+- 在 Chat 组件的 return 中添加 ResearchPanel
+- 使用 sticky 定位（bottom-[72px]，在聊天输入框上方）
+- 条件渲染：`shouldShowResearchButton || showResearchUI`
+- 传递 props：`prompt`, `isActive`, `events`, `status`, `onStart`
+- _需求: Requirement 21, 22_
+- _预计时间: 1 小时_
+
+#### - [ ] 5.7 实现状态管理逻辑 ⭐ (新架构)
+- 实现 `handleStartResearch` 函数
+- 设置 `researchPrompt` 和 `showResearchUI` 状态
+- 在 onComplete 回调中重置状态
+- 确保研究完成后 UI 正确关闭
+- _需求: Requirement 4, 22_
 - _预计时间: 30 分钟_
 
-#### - [ ] 5.5 编写研究工具使用说明
-- 编写何时使用 startResearch 的说明
-- 编写工具调用顺序说明
-- 编写追问处理说明
+#### - [ ] 5.8 更新 System Prompt 文件 ⚠️ (API 更新)
+- 打开 `lib/ai/prompts.ts`
+- 添加 researchPrompt 说明：
+  - AI 会接收到 "Research completed:" 开头的消息
+  - AI 应调用 createDocument 创建 Artifact
+  - 追问时调用 updateDocument
+- 集成到 systemPrompt 函数
 - 添加示例对话流程
 - _需求: Requirement 6_
 - _预计时间: 1 小时_
 
-#### - [ ] 5.6 更新 System Prompt 文件
-- 打开 `lib/ai/prompts.ts`
-- 添加 researchPrompt 常量
-- 集成到 systemPrompt 函数
-- 验证 Prompt 格式正确
-- _需求: Requirement 6_
-- _预计时间: 45 分钟_
-
-#### - [ ] 5.7 测试 AI 工具调用
+#### - [ ] 5.9 测试 Chat 组件集成
 - 启动开发服务器
-- 在聊天中输入研究请求
-- 验证 AI 调用 startResearch 工具
-- 验证工具返回 taskId
-- 记录测试结果
+- 与 AI 对话，让 AI 回复包含研究关键词的内容
+- 验证 ResearchButton 在聊天输入框上方显示（sticky 定位）
+- 点击按钮验证研究开始
+- 验证 ResearchProgress 正确显示
+- 验证进度显示
 - _需求: Requirement 5_
 - _预计时间: 1 小时_
 
-#### - [ ] 5.8 优化 System Prompt
-- 根据测试结果调整 Prompt
-- 确保 AI 按预期行为
-- 避免 AI 自由发挥
-- 测试多个场景
-- _需求: Requirement 6_
+#### - [ ] 5.10 测试 sendMessage 报告传递 ⚠️ (关键验证)
+- 完成一次完整研究
+- 验证 onComplete 回调被调用
+- 验证 sendMessage 被正确调用
+- 检查 AI 收到的消息格式
+- 验证 AI 调用 createDocument
+- _需求: Requirement 5, 8_
 - _预计时间: 1.5 小时_
 
-#### - [ ] 5.9 实现 taskId 传递机制
-- 从工具返回值中提取 taskId
-- 将 taskId 传递给前端组件
-- 使用 dataStream 或其他机制
-- 验证 taskId 正确传递
-- _需求: Requirement 5_
-- _预计时间: 2 小时_
-
-#### - [ ] 5.10 处理工具调用失败
-- 捕获 startResearch 失败
-- 向用户显示友好错误消息
-- 记录错误日志
-- 允许用户重试
-- _需求: Requirement 9_
-- _预计时间: 1 hour_
-
-#### - [ ] 5.11 实现研究完成后的文档创建
-- 监听研究完成事件
-- 自动调用 createDocument 工具
-- 传递研究报告内容
-- 设置文档类型为 "text"
-- 设置文档标题
+#### - [ ] 5.11 测试 Artifact 创建流程
+- 验证研究报告出现在 Artifact 中
+- 验证 Artifact 类型为 "text"
+- 验证 Markdown 渲染正确
+- 测试复制和导出功能
 - _需求: Requirement 8_
-- _预计时间: 2 小时_
+- _预计时间: 1 小时_
 
-#### - [ ] 5.12 实现追问处理
-- 检测用户追问
-- 调用 updateDocument 工具
-- 更新现有报告
-- 保持版本历史
+#### - [ ] 5.12 实现追问处理测试
+- 在研究完成后发送追问
+- 验证 AI 调用 updateDocument
+- 验证 Artifact 更新
+- 验证版本历史保留
 - _需求: Requirement 8_
-- _预计时间: 1.5 小时_
+- _预计时间: 1 小时_
 
 #### - [ ] 5.13 测试完整聊天流程
 - 测试发起研究
@@ -1264,22 +1276,22 @@
 
 | Week | 模块 | 任务数 | 预计时间 |
 |------|------|--------|----------|
-| **Week 1** | 架构与工具桥接 | 30+ | 40 小时 |
-| - Day 1 | 环境准备与工具创建 | 11 | 8 小时 |
+| **Week 1** | 基础设施与组件 | 30+ | 32 小时 ⬇️ |
+| - Day 1 | 环境准备与按钮组件 | 9 | 6 小时 |
 | - Day 2 | API 代理路由 | 13 | 8 小时 |
 | - Day 3-4 | useResearchProgress Hook | 23 | 16 小时 |
-| - Day 5 | Week 1 集成测试 | 8 | 8 小时 |
-| **Week 2** | 聊天流程与组件 | 30+ | 40 小时 |
-| - Day 6-7 | 聊天流程改造 | 14 | 16 小时 |
+| - Day 5 | Week 1 集成测试 | 2 | 2 小时 |
+| **Week 2** | 聊天流程与集成 | 30+ | 36 小时 ⬇️ |
+| - Day 6-7 | Chat 组件集成 | 14 | 16 小时 |
 | - Day 8 | ResearchProgress 组件 | 12 | 8 小时 |
 | - Day 9 | Artifact 集成 | 9 | 8 小时 |
-| - Day 10 | Week 2 集成测试 | 8 | 8 小时 |
+| - Day 10 | Week 2 集成测试 | 4 | 4 小时 |
 | **Week 3** | 数据库与完善 | 30+ | 40 小时 |
 | - Day 11-12 | 数据库扩展 | 16 | 16 小时 |
 | - Day 13 | 错误处理与重连 | 7 | 8 小时 |
 | - Day 14 | 端到端测试 | 9 | 8 小时 |
 | - Day 15 | 文档与部署 | 9 | 8 小时 |
-| **总计** | **全部** | **90+** | **120 小时** |
+| **总计** | **全部** | **90+** | **108 小时** ⚠️ |
 
 **实际工作日**: 15 天（3 周，每天 8 小时）
 
