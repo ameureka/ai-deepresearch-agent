@@ -208,3 +208,37 @@ __marimo__/
 docs/账号信息/
 docs/web*/
 *.pdf
+
+# =============================================================================
+# Phase 4: Frontend (Next.js) Ignores
+# =============================================================================
+
+# Next.js
+ai-chatbot-main/.next/
+ai-chatbot-main/out/
+ai-chatbot-main/build/
+ai-chatbot-main/.turbo/
+
+# Testing
+ai-chatbot-main/test-results/
+ai-chatbot-main/playwright-report/
+ai-chatbot-main/blob-report/
+ai-chatbot-main/playwright/.cache/
+
+# TypeScript
+ai-chatbot-main/*.tsbuildinfo
+ai-chatbot-main/.vercel
+
+# Frontend dependencies already covered by global node_modules
+
+# =============================================================================
+# Phase 4: Docker & Deployment
+# =============================================================================
+
+# Docker volumes
+postgres-data/
+.docker/
+
+# Deployment logs
+deploy-*.log
+server.log

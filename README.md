@@ -1,177 +1,93 @@
-# AI Research Assistant v0.1
+# AI DeepResearch Agent
 
-> 🚀 **智能研究助手** - 基于 DeepSeek API 的多智能体研究系统，支持智能上下文管理
+> 🚀 **Intelligent Research System** - Full-stack AI research platform with integrated Next.js frontend and FastAPI backend
 
-一个基于 FastAPI 的 AI 研究助手系统，通过多个专业化智能体（Planner、Researcher、Writer、Editor）协同工作，自动完成研究任务的规划、信息收集、文档撰写和编辑优化。
+A production-ready AI research assistant featuring a modern Next.js frontend with real-time research progress tracking and a FastAPI backend powered by multiple specialized agents (Planner, Researcher, Writer, Editor).
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/yourusername/agentic-ai-public)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
+[![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 ---
 
-## 🎯 v0.1 核心特性
+## 🎯 Features
 
-### ✨ DeepSeek API 集成
-- **成本优化**: 相比 OpenAI 节省约 **45%** 成本
-- **智能降级**: DeepSeek 失败时自动切换到 OpenAI
-- **完全兼容**: 工具调用（Function Calling）与 OpenAI 100% 兼容
-- **实时追踪**: 自动记录每次 API 调用的成本和 token 使用
+### ✨ Full-Stack Integration (Phase 3 & 4)
+- **Modern UI**: Next.js 15 with App Router and Server Components
+- **Real-Time Updates**: SSE-based research progress streaming
+- **Responsive Design**: Mobile-first with sticky research panel
+- **User-Triggered Research**: Seamless AI-to-research workflow
+- **Production Ready**: Docker Compose orchestration for all services
 
-### 🧠 智能上下文管理
-- **无限长度**: 支持处理任意长度的文本（突破模型限制）
-- **自动分块**: 智能语义分块，保持上下文连贯性
-- **参数适配**: 自动适配不同模型的 max_tokens 限制
-- **错误恢复**: 参数错误时自动调整并重试
+### 🧠 Intelligent Context Management (Phase 1.5)
+- **Unlimited Length**: Process arbitrary length texts
+- **Smart Chunking**: Semantic text splitting with context preservation
+- **Auto-Adaptation**: Automatic model parameter tuning
+- **Error Recovery**: Automatic retry with adjusted parameters
 
-### 🤖 多智能体协作
-- **Planner Agent**: 使用 `deepseek-reasoner` 进行任务规划
-- **Researcher Agent**: 使用 Tavily、arXiv、Wikipedia 收集信息
-- **Writer Agent**: 生成结构化研究报告
-- **Editor Agent**: 优化和完善文档质量
+### 💰 Cost Optimization (Phase 1)
+- **DeepSeek Integration**: ~45% cost savings vs OpenAI
+- **Smart Fallback**: Auto-switch to OpenAI on DeepSeek failure
+- **Real-Time Tracking**: Monitor API costs and token usage
+- **Tool Calling**: 100% compatible with OpenAI function calling
 
----
-
-## 📊 性能指标
-
-### 成本对比
-
-| 任务类型 | OpenAI (gpt-4o-mini) | DeepSeek | 节省 |
-|---------|---------------------|----------|------|
-| 典型研究任务 | $0.0238 | $0.0129 | **45.8%** |
-| 长文档生成 | $0.0450 | $0.0247 | **45.1%** |
-| 复杂推理任务 | $0.0320 | $0.0176 | **45.0%** |
-
-### 技术指标
-
-| 指标 | 数值 |
-|------|------|
-| **测试覆盖率** | 83% (64/64 测试通过) |
-| **可处理文本长度** | 无限制（通过分块） |
-| **参数错误率** | 0%（自动修复） |
-| **API 响应时间** | < 100ms |
-| **分块处理开销** | < 50% |
+### 🤖 Multi-Agent Collaboration
+- **Planner Agent**: Task planning with deepseek-reasoner
+- **Researcher Agent**: Information gathering via Tavily, arXiv, Wikipedia
+- **Writer Agent**: Structured report generation
+- **Editor Agent**: Quality optimization and refinement
 
 ---
 
-## 🚀 快速开始
+## 🏗️ Architecture
 
-### 前置要求
+### Monorepo Structure
 
-- Docker Desktop (Windows/macOS) 或 Docker Engine (Linux)
-- API Keys:
-  - [DeepSeek API Key](https://platform.deepseek.com/)
-  - [OpenAI API Key](https://platform.openai.com/) (用于降级)
-  - [Tavily API Key](https://tavily.com/) (用于搜索)
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/yourusername/agentic-ai-public.git
-cd agentic-ai-public
+```
+ai-deepresearch-agent/
+├── ai-chatbot-main/              # Next.js Frontend
+│   ├── app/                      # Next.js App Router
+│   ├── components/               # React Components
+│   │   ├── chat.tsx             # Main chat interface
+│   │   ├── research-button.tsx  # Research trigger button
+│   │   ├── research-panel.tsx   # Research UI container
+│   │   └── research-progress.tsx # Real-time progress display
+│   ├── hooks/                    # React Hooks
+│   │   └── use-research-progress.ts # SSE research hook
+│   ├── lib/                      # Utilities
+│   │   └── research-utils.ts    # Keyword detection
+│   └── playwright/               # E2E Tests
+├── src/                          # FastAPI Backend
+│   ├── planning_agent.py         # Task planning and execution
+│   ├── agents.py                 # Research/Writer/Editor agents
+│   ├── research_tools.py         # Search tools integration
+│   ├── model_adapter.py          # Model parameter adaptation
+│   ├── chunking.py               # Text chunking processor
+│   └── context_manager.py        # Context management
+├── main.py                       # FastAPI entry point
+├── Dockerfile.backend            # Backend Docker configuration
+├── docker-compose.yml            # Multi-service orchestration
+└── README.md                     # This file
 ```
 
-### 2. 配置环境变量
-
-复制 `.env.example` 到 `.env` 并填入你的 API Keys：
-
-```bash
-cp .env.example .env
-```
-
-编辑 `.env` 文件：
-
-```bash
-# 主要模型（DeepSeek）
-DEEPSEEK_API_KEY=sk-your-deepseek-key
-
-# 降级模型（OpenAI）
-OPENAI_API_KEY=sk-your-openai-key
-
-# 搜索工具
-TAVILY_API_KEY=tvly-your-tavily-key
-
-# 数据库（可选，使用默认值）
-DATABASE_URL=postgresql://app:local@127.0.0.1:5432/appdb
-
-# 上下文管理配置（可选）
-ENABLE_CHUNKING=true
-CHUNKING_THRESHOLD=0.8
-MAX_CHUNK_SIZE=6000
-CHUNK_OVERLAP=200
-```
-
-### 3. 构建并运行
-
-```bash
-# 构建 Docker 镜像
-docker build -t ai-research-assistant .
-
-# 运行容器
-docker run --rm -it \
-  -p 8000:8000 \
-  -p 5432:5432 \
-  --name ai-research \
-  --env-file .env \
-  ai-research-assistant
-```
-
-### 4. 访问应用
-
-- **Web 界面**: http://localhost:8000
-- **API 文档**: http://localhost:8000/docs
-- **健康检查**: http://localhost:8000/api
-
----
-
-## � 使用示例
-
-### Web 界面
-
-1. 打开 http://localhost:8000
-2. 输入研究主题，例如："Large Language Models for scientific discovery"
-3. 点击"Generate Report"
-4. 实时查看进度和结果
-
-### API 调用
-
-#### 创建研究任务
-
-```bash
-curl -X POST http://localhost:8000/generate_report \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt": "深度学习在计算机视觉中的应用",
-    "model": "deepseek:deepseek-chat"
-  }'
-
-# 返回: {"task_id": "uuid-here"}
-```
-
-#### 查询任务进度
-
-```bash
-curl http://localhost:8000/task_progress/<task_id>
-```
-
-#### 获取最终结果
-
-```bash
-curl http://localhost:8000/task_status/<task_id>
-```
-
----
-
-## 🏗️ 架构设计
-
-### 系统架构
+### System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    FastAPI Web Server                        │
-│  - REST API 端点                                             │
-│  - Web UI (Jinja2)                                          │
-│  - 后台任务管理                                              │
+│                     Next.js Frontend (Port 3000)             │
+│  - Modern React UI with App Router                           │
+│  - Real-time SSE streaming (fetch-event-source)              │
+│  - ResearchPanel with sticky positioning                     │
+│  - useResearchProgress Hook                                  │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP/SSE
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                FastAPI Backend (Port 8000)                   │
+│  - REST API Endpoints                                        │
+│  - SSE Research Streaming (/api/research/stream)             │
+│  - Background Task Management                                │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -179,332 +95,446 @@ curl http://localhost:8000/task_status/<task_id>
 │              Multi-Agent Workflow Engine                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │   Planner    │→ │  Researcher  │→ │    Writer    │      │
-│  │   Agent      │  │    Agent     │  │    Agent     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 │         ↓                                      ↓             │
 │  ┌──────────────┐                      ┌──────────────┐     │
 │  │   Editor     │                      │ Cost Tracker │     │
-│  │   Agent      │                      └──────────────┘     │
-│  └──────────────┘                                           │
+│  └──────────────┘                      └──────────────┘     │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            Context Management Layer (v0.1 新增)              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Model      │  │   Chunking   │  │   Context    │      │
-│  │   Adapter    │  │  Processor   │  │   Manager    │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API Integration Layer                     │
+│                 API Integration Layer                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  DeepSeek    │  │   OpenAI     │  │   Tavily     │      │
-│  │     API      │  │     API      │  │     API      │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
+└────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  PostgreSQL Database                         │
-│  - 任务状态管理                                              │
-│  - 结果存储                                                  │
-│  - 成本追踪记录                                              │
+│             PostgreSQL Database (Port 5432)                  │
+│  - Task state management                                     │
+│  - Research results storage                                  │
+│  - Cost tracking records                                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 核心组件
-
-#### 1. Model Adapter（模型适配层）
-- 自动验证和调整 `max_tokens` 参数
-- 支持 DeepSeek (8192) 和 OpenAI (16384) 限制
-- 参数错误时自动重试（最多 2 次）
-- Token 估算和上下文使用率监控
-
-#### 2. Chunking Processor（分块处理器）
-- 按段落边界智能分割文本
-- 块间重叠 200 tokens 保持上下文
-- 自动合并处理结果
-- 支持进度显示
-
-#### 3. Context Manager（上下文管理器）
-- 自动选择处理策略（直接/分块）
-- 可配置的分块阈值（默认 80%）
-- 成本估算功能
-- 环境变量配置支持
-
 ---
 
-## 📁 项目结构
+## 🚀 Quick Start
 
-```
-.
-├── main.py                          # FastAPI 应用入口
-├── src/
-│   ├── planning_agent.py            # 规划和执行器
-│   ├── agents.py                    # 研究/写作/编辑智能体
-│   ├── research_tools.py            # 搜索工具集成
-│   ├── config.py                    # 配置管理
-│   ├── cost_tracker.py              # 成本追踪
-│   ├── fallback.py                  # 降级机制
-│   ├── model_adapter.py             # 模型适配层 (v0.1 新增)
-│   ├── chunking.py                  # 分块处理器 (v0.1 新增)
-│   └── context_manager.py           # 上下文管理器 (v0.1 新增)
-├── tests/
-│   ├── test_config.py               # 配置测试
-│   ├── test_cost_tracker.py         # 成本追踪测试
-│   ├── test_model_adapter.py        # 模型适配测试 (v0.1 新增)
-│   ├── test_chunking.py             # 分块处理测试 (v0.1 新增)
-│   └── test_context_manager.py      # 上下文管理测试 (v0.1 新增)
-├── templates/
-│   └── index.html                   # Web UI 模板
-├── static/                          # 静态资源
-├── docs/                            # 完整文档
-│   ├── research-summary/            # 调研报告
-│   ├── TOOL_CALLING_SUMMARY.md      # 工具调用指南
-│   └── production_architecture.md   # 生产架构设计
-├── .kiro/specs/                     # 开发规范
-│   ├── phase1-deepseek-integration/ # Phase 1 规范
-│   └── context-length-optimization/ # Phase 1.5 规范
-├── requirements.txt                 # Python 依赖
-├── Dockerfile                       # Docker 配置
-├── .env.example                     # 环境变量示例
-└── README.md                        # 本文件
-```
+### Prerequisites
 
----
+- **Docker Desktop** (Windows/macOS) or **Docker Engine** (Linux)
+- **API Keys**:
+  - [DeepSeek API Key](https://platform.deepseek.com/)
+  - [OpenAI API Key](https://platform.openai.com/)
+  - [Tavily API Key](https://tavily.com/)
 
-## 🔧 配置说明
+### Method A: Docker Compose (Recommended)
 
-### 模型配置
-
-系统默认使用以下模型配置（可通过环境变量修改）：
+#### 1. Clone Repository
 
 ```bash
-# Planner Agent - 推理能力强
-PLANNER_MODEL=deepseek:deepseek-reasoner
-
-# Researcher Agent - 工具调用兼容
-RESEARCHER_MODEL=deepseek:deepseek-chat
-
-# Writer Agent - 长文本生成
-WRITER_MODEL=deepseek:deepseek-chat
-
-# Editor Agent - 文本改进
-EDITOR_MODEL=deepseek:deepseek-chat
-
-# Fallback Model - 自动降级
-FALLBACK_MODEL=openai:gpt-4o-mini
+git clone https://github.com/ameureka/ai-deepresearch-agent.git
+cd ai-deepresearch-agent
 ```
 
-### 上下文管理配置
+#### 2. Configure Environment
 
 ```bash
-# 启用分块处理（默认: true）
-ENABLE_CHUNKING=true
+# Create .env file
+cp .env.example .env
 
-# 分块阈值 - 超过上下文窗口的此百分比时触发（默认: 0.8）
-CHUNKING_THRESHOLD=0.8
-
-# 最大块大小（默认: 6000 tokens）
-MAX_CHUNK_SIZE=6000
-
-# 块重叠大小（默认: 200 tokens）
-CHUNK_OVERLAP=200
+# Edit .env with your API keys
+nano .env
 ```
 
-### 数据库配置
+Required environment variables:
 
 ```bash
-# PostgreSQL 连接字符串
-DATABASE_URL=postgresql://app:local@127.0.0.1:5432/appdb
+# API Keys
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+OPENAI_API_KEY=sk-your-openai-key
+TAVILY_API_KEY=tvly-your-tavily-key
 
-# 可选：自定义数据库参数
-POSTGRES_USER=app
-POSTGRES_PASSWORD=local
-POSTGRES_DB=appdb
+# Database (PostgreSQL in Docker)
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+
+# Auth
+AUTH_SECRET=your-random-secret-key
 ```
 
----
-
-## 🧪 测试
-
-### 运行所有测试
+#### 3. Start All Services
 
 ```bash
-# 在容器内运行
-docker exec -it ai-research bash
-PYTHONPATH=. pytest tests/ -v
+# Build and start all services
+docker-compose up -d
 
-# 或在本地运行（需要安装依赖）
+# View logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+```
+
+#### 4. Access Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+#### 5. Stop Services
+
+```bash
+docker-compose down        # Stop services
+docker-compose down -v     # Stop and remove volumes
+```
+
+### Method B: Direct Run (Development)
+
+#### Terminal 1: PostgreSQL
+
+```bash
+# Install PostgreSQL (macOS)
+brew install postgresql@15
+brew services start postgresql@15
+
+# Create database
+psql postgres -c "CREATE DATABASE ai_research;"
+```
+
+#### Terminal 2: FastAPI Backend
+
+```bash
+# Install Python dependencies
 pip install -r requirements.txt
-PYTHONPATH=. pytest tests/ -v
+
+# Configure environment
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_research
+export DEEPSEEK_API_KEY=sk-your-key
+export TAVILY_API_KEY=tvly-your-key
+
+# Start backend
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 测试覆盖率
+#### Terminal 3: Next.js Frontend
 
 ```bash
+# Install Node.js dependencies
+cd ai-chatbot-main
+npm install
+
+# Configure environment
+cp .env.example .env.local
+# Edit .env.local with your API keys
+
+# Start frontend
+npm run dev
+```
+
+Access: http://localhost:3000
+
+---
+
+## 📖 Usage
+
+### Web Interface
+
+1. Open http://localhost:3000
+2. Chat with the AI assistant
+3. When AI suggests research, click **"Start Research"** button
+4. Watch real-time progress with SSE streaming
+5. View final research report in chat
+
+### Research Flow (Phase 3 Architecture)
+
+```typescript
+User Message: "Tell me about quantum computing"
+        ↓
+AI Response: "I can research quantum computing for you..."
+        ↓
+ResearchButton appears (sticky at bottom-[72px])
+        ↓
+User clicks "Start Research"
+        ↓
+useResearchProgress Hook initiates POST SSE to /api/research/stream
+        ↓
+ResearchProgress displays real-time events:
+  - start: Research started
+  - plan: Research plan generated
+  - progress: Search results found
+  - done: Final report ready
+        ↓
+onComplete callback sends report to chat
+        ↓
+AI continues conversation with research context
+```
+
+### API Usage
+
+#### Start Research Task
+
+```bash
+curl -X POST http://localhost:8000/api/research/stream \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "quantum computing applications"}'
+```
+
+#### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+---
+
+## 🧪 Testing
+
+### Backend Tests
+
+```bash
+# Run all tests
+cd /path/to/project
+PYTHONPATH=. pytest tests/ -v
+
+# Run with coverage
 pytest tests/ --cov=src --cov-report=html
 ```
 
-当前测试覆盖率：**83%** (64/64 测试通过)
+### Frontend Tests
 
----
-
-## 📚 文档
-
-### 核心文档
-- 🚀 [快速开始](./docs/research-summary/QUICK_REFERENCE.md)
-- 📊 [执行摘要](./docs/research-summary/EXECUTIVE_SUMMARY.md)
-- 📖 [完整调研报告](./docs/research-summary/requirements.md)
-- ⭐ [工具调用指南](./docs/TOOL_CALLING_SUMMARY.md)
-- 🏗️ [生产架构](./docs/production_architecture.md)
-
-### Phase 文档
-- [Phase 1: DeepSeek 集成](./docs/PHASE1_COMPLETION_REPORT.md)
-- [Phase 1.5: 上下文优化](./.kiro/specs/context-length-optimization/phase1.5_implementation_report.md)
-
-### 开发规范
-- [Context Length Optimization Spec](./.kiro/specs/context-length-optimization/)
-
-**[→ 查看完整文档索引](./docs/README.md)**
-
----
-
-## 🐛 故障排查
-
-### 常见问题
-
-#### 1. 服务无法启动
-
-**症状**: Docker 容器启动失败
-
-**解决方案**:
 ```bash
-# 检查日志
-docker logs ai-research
+cd ai-chatbot-main
 
-# 确保端口未被占用
-lsof -i :8000
-lsof -i :5432
+# Unit tests
+npm test
 
-# 重新构建镜像
-docker build --no-cache -t ai-research-assistant .
+# E2E tests (Phase 3 updated)
+npx playwright test
+
+# Interactive E2E
+npx playwright test --ui
 ```
 
-#### 2. API Key 错误
+### E2E Test Coverage (Phase 3)
 
-**症状**: `401 Unauthorized` 或 `Invalid API Key`
+- ✅ Research keyword detection
+- ✅ ResearchButton display and positioning
+- ✅ ResearchPanel state transitions
+- ✅ useResearchProgress SSE connection
+- ✅ Real-time event streaming
+- ✅ Report completion flow
 
-**解决方案**:
+---
+
+## 🔧 Configuration
+
+### Backend Configuration (.env)
+
 ```bash
-# 检查 .env 文件
-cat .env | grep API_KEY
+# API Keys
+DEEPSEEK_API_KEY=sk-your-key
+OPENAI_API_KEY=sk-your-key
+TAVILY_API_KEY=tvly-your-key
+SERPER_API_KEY=your-key (optional)
 
-# 确保 API Key 格式正确
-# DeepSeek: sk-xxxxxxxx
-# OpenAI: sk-proj-xxxxxxxx
-# Tavily: tvly-dev-xxxxxxxx
+# Database
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_research
+
+# Model Selection
+PLANNER_MODEL=deepseek:deepseek-reasoner
+RESEARCHER_MODEL=deepseek:deepseek-chat
+WRITER_MODEL=deepseek:deepseek-chat
+EDITOR_MODEL=deepseek:deepseek-chat
+FALLBACK_MODEL=openai:gpt-4o-mini
+
+# Context Management
+ENABLE_CHUNKING=true
+CHUNKING_THRESHOLD=0.8
+MAX_CHUNK_SIZE=6000
+CHUNK_OVERLAP=200
 ```
 
-#### 3. 数据库连接失败
+### Frontend Configuration (.env.local)
 
-**症状**: `psycopg2.OperationalError`
-
-**解决方案**:
 ```bash
-# 检查数据库状态
-docker exec -it ai-research psql -U app -d appdb -c "SELECT 1"
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:8000
 
-# 重置数据库
-docker exec -it ai-research bash
-su -s /bin/bash postgres -c "psql -c 'DROP DATABASE IF EXISTS appdb'"
-su -s /bin/bash postgres -c "psql -c 'CREATE DATABASE appdb'"
+# Auth
+AUTH_SECRET=your-secret-key
+AUTH_URL=http://localhost:3000/api/auth
+
+# AI SDK
+OPENAI_API_KEY=sk-your-key
+
+# Node Environment
+NODE_ENV=development
 ```
 
-#### 4. max_tokens 错误（已在 v0.1 修复）
+---
 
-**症状**: `invalid max_tokens value`
+## 📊 Performance
 
-**解决方案**: v0.1 已自动修复此问题，无需手动处理
+### Cost Comparison
+
+| Task Type | OpenAI (gpt-4o-mini) | DeepSeek | Savings |
+|-----------|---------------------|----------|---------|
+| Research Task | $0.0238 | $0.0129 | **45.8%** |
+| Long Document | $0.0450 | $0.0247 | **45.1%** |
+| Complex Reasoning | $0.0320 | $0.0176 | **45.0%** |
+
+### Technical Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Backend Test Coverage** | 83% (64/64 tests pass) |
+| **Frontend Unit Tests** | 17/17 tests pass |
+| **Max Text Length** | Unlimited (via chunking) |
+| **API Response Time** | < 100ms |
+| **SSE Latency** | < 50ms |
 
 ---
 
-## 🔄 版本历史
+## 🔄 Version History
 
-### v0.1.0 (2025-10-31)
+### v0.2.0 - Phase 4 Deployment (2025-10-31)
+- ✅ Monorepo structure (frontend + backend at same level)
+- ✅ Docker Compose multi-service orchestration
+- ✅ Production-ready configuration
+- ✅ Updated .gitignore for Phase 4
+- ✅ Unified README documentation
 
-#### 🎉 主要功能
-- ✅ **DeepSeek API 集成**: 实现约 45% 成本节省
-- ✅ **智能上下文管理**: 支持任意长度文本处理
-- ✅ **模型适配层**: 自动参数验证和调整
-- ✅ **分块处理系统**: 智能语义分块和合并
-- ✅ **成本追踪**: 实时记录 API 调用成本
-- ✅ **智能降级**: 自动切换到备用模型
+### v0.1.5 - Phase 3 Frontend Integration (2025-10-31)
+- ✅ ResearchButton, ResearchPanel, ResearchProgress components
+- ✅ useResearchProgress Hook with POST SSE
+- ✅ Integration in Chat component
+- ✅ Research utility functions
+- ✅ 17 unit tests for all components
 
-#### 🧪 测试
-- ✅ 64 个单元测试全部通过（83% 覆盖率）
-- ✅ Phase 1: 22 个测试（配置 + 成本追踪）
-- ✅ Phase 1.5: 42 个测试（模型适配 + 分块 + 上下文管理）
-
-#### 📝 文档
-- ✅ 完整的 README 文档
-- ✅ Phase 1 实施报告
-- ✅ Phase 1.5 实施报告
-- ✅ API 文档和使用示例
-
-#### 🐛 修复
-- ✅ 修复 max_tokens 超限错误
-- ✅ 修复长文本处理失败问题
-- ✅ 增强错误处理和降级机制
+### v0.1.0 - Phase 1 & 1.5 (2025-10-31)
+- ✅ DeepSeek API integration
+- ✅ Intelligent context management
+- ✅ Cost optimization (~45% savings)
+- ✅ 64 backend unit tests
 
 ---
 
-## 🤝 贡献
+## 📚 Documentation
 
-欢迎贡献！请遵循以下步骤：
+### Core Documentation
+- 🚀 [Quick Start Guide](./QUICK_START.md)
+- 📖 [Phase 4 Deployment Tasks](./.kiro/specs/phase4-deployment/tasks.md)
+- 📊 [Phase 3 Implementation Report](./.kiro/specs/phase3-nextjs-frontend/PHASE3_IMPLEMENTATION_REPORT.md)
+- 🎨 [UI Design Report](./.kiro/specs/phase3-nextjs-frontend/UI_DESIGN_REPORT.md)
 
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+### API Documentation
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-### 开发指南
-
-- 遵循 PEP 8 代码规范
-- 添加单元测试覆盖新功能
-- 更新相关文档
-- 确保所有测试通过
-
----
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+### Development Guides
+- [Docker Compose Setup](./.kiro/specs/phase4-deployment/design.md)
+- [E2E Testing Guide](./.kiro/specs/phase4-deployment/requirements.md)
+- [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
 
 ---
 
-## 🙏 致谢
+## 🐛 Troubleshooting
 
-- [DeepSeek](https://www.deepseek.com/) - 提供高性价比的 AI 模型
-- [OpenAI](https://openai.com/) - 提供备用模型支持
-- [Tavily](https://tavily.com/) - 提供搜索 API
-- [FastAPI](https://fastapi.tiangolo.com/) - 优秀的 Web 框架
-- [aisuite](https://github.com/andrewyng/aisuite) - 统一的 AI API 接口
+### Docker Compose Issues
+
+```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service_name]
+
+# Rebuild services
+docker-compose build --no-cache
+
+# Reset everything
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Database Connection Issues
+
+```bash
+# Check PostgreSQL status
+docker-compose exec postgres pg_isready
+
+# Access PostgreSQL shell
+docker-compose exec postgres psql -U postgres -d ai_research
+
+# Reset database
+docker-compose down -v
+docker-compose up -d postgres
+```
+
+### Frontend Build Issues
+
+```bash
+cd ai-chatbot-main
+
+# Clear Next.js cache
+rm -rf .next
+
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+
+# Rebuild
+npm run build
+```
 
 ---
 
-## 📞 联系方式
+## 🤝 Contributing
 
-- **项目主页**: https://github.com/yourusername/agentic-ai-public
-- **问题反馈**: https://github.com/yourusername/agentic-ai-public/issues
-- **文档**: https://github.com/yourusername/agentic-ai-public/tree/main/docs
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+### Development Guidelines
+- Follow PEP 8 (Python) and ESLint (TypeScript)
+- Add unit tests for new features
+- Update documentation
+- Ensure all tests pass
 
 ---
 
-**Made with ❤️ by the AI Research Assistant Team**
+## 📄 License
 
-**Version**: 0.1.0 | **Last Updated**: 2025-10-31
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [DeepSeek](https://www.deepseek.com/) - Cost-effective AI models
+- [OpenAI](https://openai.com/) - Fallback model support
+- [Tavily](https://tavily.com/) - Search API
+- [Vercel](https://vercel.com/) - Next.js and deployment platform
+- [FastAPI](https://fastapi.tiangolo.com/) - Python web framework
+- [aisuite](https://github.com/andrewyng/aisuite) - Unified AI API interface
+
+---
+
+## 📞 Contact
+
+- **Repository**: https://github.com/ameureka/ai-deepresearch-agent
+- **Issues**: https://github.com/ameureka/ai-deepresearch-agent/issues
+- **Documentation**: https://github.com/ameureka/ai-deepresearch-agent/tree/main/docs
+
+---
+
+**Made with ❤️ by the AI DeepResearch Team**
+
+**Version**: 0.2.0 (Phase 4) | **Last Updated**: 2025-10-31

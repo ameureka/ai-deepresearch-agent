@@ -1,36 +1,99 @@
+# docker-compose.yml
+# Phase 4 Deployment - Local Development Environment
+# Orchestrates PostgreSQL, FastAPI Backend, and Next.js Frontend
+
 version: '3.8'
 
 services:
-  # FastAPI 应用
-  app:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: ai-research-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_research
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-network
+
+  # FastAPI Backend
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: ai-research-assistant
+      dockerfile: Dockerfile.backend
+    container_name: ai-research-backend
     restart: always
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      - ENV=production
-      - LOG_LEVEL=INFO
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ai_research
+
+      # API Keys (load from .env)
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      SERPER_API_KEY: ${SERPER_API_KEY}
+
+      # Server Config
+      HOST: 0.0.0.0
+      PORT: 8000
+      WORKERS: 1
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - ./static:/app/static:ro
       - ./templates:/app/templates:ro
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
       - ai-network
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./ai-chatbot-main
+      dockerfile: Dockerfile
+    container_name: ai-research-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # Backend API URL
+      NEXT_PUBLIC_API_URL: http://backend:8000
+
+      # Auth (if using)
+      AUTH_SECRET: ${AUTH_SECRET:-development-secret-key}
+
+      # AI SDK
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # Node Environment
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ai-network
+
+volumes:
+  postgres-data:
+    driver: local
 
 networks:
   ai-network:
