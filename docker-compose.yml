@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # FastAPI 应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-research-assistant
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./static:/app/static:ro
+      - ./templates:/app/templates:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge
