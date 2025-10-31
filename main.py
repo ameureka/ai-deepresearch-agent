@@ -283,8 +283,9 @@ async def health_check_v2():
         # 如果数据库连接失败，仍然返回 200，但 status 为 "degraded"
         db_ok = True
         try:
+            from sqlalchemy import text
             db = SessionLocal()
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             db.close()
         except Exception as e:
             logger.warning(f"⚠️ 数据库健康检查失败: {e}")
