@@ -195,48 +195,53 @@ docker-compose down -v     # Stop and remove volumes
 
 ### Method B: Direct Run (Development)
 
-#### Terminal 1: PostgreSQL
+For local development without Docker, we provide automated setup scripts:
+
+#### 1. Quick Setup (Automated)
 
 ```bash
-# Install PostgreSQL (macOS)
-brew install postgresql@15
-brew services start postgresql@15
-
-# Create database
-psql postgres -c "CREATE DATABASE ai_research;"
-```
-
-#### Terminal 2: FastAPI Backend
-
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
+# Clone repository
+git clone https://github.com/ameureka/ai-deepresearch-agent.git
+cd ai-deepresearch-agent
 
 # Configure environment
-export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_research
-export DEEPSEEK_API_KEY=sk-your-key
-export TAVILY_API_KEY=tvly-your-key
+cp .env.example .env
+cp ai-chatbot-main/.env.local.example ai-chatbot-main/.env.local
+# Edit both files with your API keys
 
-# Start backend
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# Setup backend (creates venv, installs dependencies)
+./scripts/setup-backend.sh
+
+# Setup frontend (installs npm packages)
+./scripts/setup-frontend.sh
+
+# Start all services
+./scripts/dev.sh
 ```
 
-#### Terminal 3: Next.js Frontend
+This will start:
+- Backend: http://localhost:8000
+- Frontend: http://localhost:3000
+
+#### 2. Stop Services
 
 ```bash
-# Install Node.js dependencies
-cd ai-chatbot-main
-npm install
-
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your API keys
-
-# Start frontend
-npm run dev
+# In another terminal
+./scripts/stop-dev.sh
 ```
 
-Access: http://localhost:3000
+#### 3. Manual Setup (Advanced)
+
+If you prefer manual control, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed instructions including:
+- Manual virtual environment setup
+- Database migration steps
+- Individual service startup
+- Troubleshooting tips
+
+**Prerequisites:**
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL (local, Docker, or Neon SaaS)
 
 ---
 
@@ -449,9 +454,12 @@ NODE_ENV=development
 - ReDoc: http://localhost:8000/redoc
 
 ### Development Guides
-- [Docker Compose Setup](./.kiro/specs/phase4-deployment/design.md)
-- [E2E Testing Guide](./.kiro/specs/phase4-deployment/requirements.md)
-- [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
+- 💻 [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) - **Complete setup and workflow**
+- 🔧 [Environment Variables Guide](./docs/ENVIRONMENT_VARIABLES.md)
+- 🗄️ [Database Configuration](./docs/DATABASE_CONFIGURATION.md)
+- 🐳 [Docker Compose Setup](./.kiro/specs/phase4-deployment/design.md)
+- 🧪 [E2E Testing Guide](./.kiro/specs/phase4-deployment/requirements.md)
+- ✅ [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
 
 ---
 
