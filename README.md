@@ -414,6 +414,18 @@ NODE_ENV=development
 - ✅ Research utility functions
 - ✅ 17 unit tests for all components
 
+### v0.1.2 - Phase 2 API Standardization (2025-10-31)
+- ✅ Unified API response format (ApiResponse)
+- ✅ SSE streaming interface (/api/research/stream)
+- ✅ 5 SSE event types (START, PLAN, PROGRESS, DONE, ERROR)
+- ✅ Global error handling (3-tier exception handlers)
+- ✅ Health check endpoint (/api/health)
+- ✅ Models list endpoint (/api/models)
+- ✅ CORS configuration with environment variables
+- ✅ Complete SSE workflow integration
+- ✅ Real-time progress streaming
+- ✅ Full backward compatibility
+
 ### v0.1.0 - Phase 1 & 1.5 (2025-10-31)
 - ✅ DeepSeek API integration
 - ✅ Intelligent context management
