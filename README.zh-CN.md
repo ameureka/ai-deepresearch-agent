@@ -1,6 +1,6 @@
 # AI 深度研究助手
 
-[English](./README.md) | 简体中文
+简体中文 | [English](./README.md)
 
 > 🚀 **智能研究系统** - 集成 Next.js 前端和 FastAPI 后端的全栈 AI 研究平台
 

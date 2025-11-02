@@ -1,6 +1,6 @@
 # AI DeepResearch Agent
 
-English | [简体中文](./README.zh-CN.md)
+[简体中文](./README.zh-CN.md) | English
 
 > 🚀 **Intelligent Research System** - Full-stack AI research platform with integrated Next.js frontend and FastAPI backend
 
