@@ -1,114 +1,114 @@
-# AI DeepResearch Agent
+# AI 深度研究助手
 
-[简体中文](./README.zh-CN.md) | English
+简体中文 | [English](./README.en.md)
 
-> 🚀 **Intelligent Research System** - Full-stack AI research platform with integrated Next.js frontend and FastAPI backend
+> 🚀 **智能研究系统** - 集成 Next.js 前端和 FastAPI 后端的全栈 AI 研究平台
 
-A production-ready AI research assistant featuring a modern Next.js frontend with real-time research progress tracking and a FastAPI backend powered by multiple specialized agents (Planner, Researcher, Writer, Editor).
+一个生产就绪的 AI 研究助手，具有现代化的 Next.js 前端（实时研究进度追踪）和由多个专业智能体（规划器、研究员、写作者、编辑）驱动的 FastAPI 后端。
 
-[![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
+[![版本](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
-[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+[![许可证](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 ---
 
-## 🎯 Features
+## 🎯 功能特性
 
-### ✨ Full-Stack Integration (Phase 3 & 4.5)
-- **Modern UI**: Next.js 15 with App Router and Server Components
-- **Real-Time Updates**: SSE-based research progress streaming + queue telemetry
-- **Responsive Design**: Mobile-first with sticky research panel
-- **User-Triggered Research**: Seamless AI-to-research workflow
-- **Research History**: Inline “Recent Research” list with one-click report restore
-- **Production Ready**: Vercel deployment + Python/Docker backend + Neon database
+### ✨ 全栈集成（第 3、4.5 阶段）
+- **现代化 UI**：Next.js 15 配合 App Router 和服务器组件
+- **实时更新**：基于 SSE 的研究进度流式传输与排队耗时反馈
+- **响应式设计**：移动优先，带有固定研究面板
+- **用户触发研究**：无缝的 AI 到研究工作流
+- **研究历史**：内置“最近研究”列表，可一键重新打开历史报告
+- **生产就绪**：Vercel 部署 + Python/Docker 后端 + Neon 数据库
 
-### 🧠 Intelligent Context Management (Phase 1.5)
-- **Unlimited Length**: Process arbitrary length texts
-- **Smart Chunking**: Semantic text splitting with context preservation
-- **Auto-Adaptation**: Automatic model parameter tuning
-- **Error Recovery**: Automatic retry with adjusted parameters
+### 🧠 智能上下文管理（第 1.5 阶段）
+- **无限长度**：处理任意长度的文本
+- **智能分块**：语义文本分割，保留上下文
+- **自动适配**：自动调整模型参数
+- **错误恢复**：自动重试并调整参数
 
-### 💰 Cost Optimization (Phase 1)
-- **DeepSeek Integration**: ~45% cost savings vs OpenAI
-- **Smart Fallback**: Auto-switch to OpenAI on DeepSeek failure
-- **Real-Time Tracking**: Monitor API costs and token usage
-- **Tool Calling**: 100% compatible with OpenAI function calling
+### 💰 成本优化（第 1 阶段）
+- **DeepSeek 集成**：相比 OpenAI 节省约 45% 成本
+- **智能回退**：DeepSeek 失败时自动切换到 OpenAI
+- **实时追踪**：监控 API 成本和 token 使用量
+- **工具调用**：100% 兼容 OpenAI 函数调用
 
-### 🤖 Multi-Agent Collaboration
-- **Planner Agent**: Task planning with deepseek-reasoner
-- **Researcher Agent**: Information gathering via Tavily, arXiv, Wikipedia
-- **Writer Agent**: Structured report generation
-- **Editor Agent**: Quality optimization and refinement
+### 🤖 多智能体协作
+- **规划智能体**：使用 deepseek-reasoner 进行任务规划
+- **研究智能体**：通过 Tavily、arXiv、Wikipedia 收集信息
+- **写作智能体**：结构化报告生成
+- **编辑智能体**：质量优化和精炼
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ 架构
 
-### Monorepo Structure
+### Monorepo 结构
 
 ```
 ai-deepresearch-agent/
-├── ai-chatbot-main/              # Next.js Frontend
+├── ai-chatbot-main/              # Next.js 前端
 │   ├── app/                      # Next.js App Router
-│   ├── components/               # React Components
-│   │   ├── chat.tsx             # Main chat interface
-│   │   ├── research-button.tsx  # Research trigger button
-│   │   ├── research-panel.tsx   # Research UI container
-│   │   └── research-progress.tsx # Real-time progress display
+│   ├── components/               # React 组件
+│   │   ├── chat.tsx             # 主聊天界面
+│   │   ├── research-button.tsx  # 研究触发按钮
+│   │   ├── research-panel.tsx   # 研究 UI 容器
+│   │   └── research-progress.tsx # 实时进度显示
 │   ├── hooks/                    # React Hooks
-│   │   └── use-research-progress.ts # SSE research hook
-│   ├── lib/                      # Utilities
-│   │   └── research-utils.ts    # Keyword detection
-│   └── playwright/               # E2E Tests
-├── src/                          # FastAPI Backend
-│   ├── planning_agent.py         # Task planning and execution
-│   ├── agents.py                 # Research/Writer/Editor agents
-│   ├── research_tools.py         # Search tools integration
-│   ├── model_adapter.py          # Model parameter adaptation
-│   ├── chunking.py               # Text chunking processor
-│   └── context_manager.py        # Context management
-├── main.py                       # FastAPI entry point
-├── Dockerfile.backend            # Backend Docker configuration
-├── docker-compose.yml            # Multi-service orchestration
-└── README.md                     # This file
+│   │   └── use-research-progress.ts # SSE 研究 hook
+│   ├── lib/                      # 工具函数
+│   │   └── research-utils.ts    # 关键词检测
+│   └── playwright/               # E2E 测试
+├── src/                          # FastAPI 后端
+│   ├── planning_agent.py         # 任务规划和执行
+│   ├── agents.py                 # 研究/写作/编辑智能体
+│   ├── research_tools.py         # 搜索工具集成
+│   ├── model_adapter.py          # 模型参数适配
+│   ├── chunking.py               # 文本分块处理器
+│   └── context_manager.py        # 上下文管理
+├── main.py                       # FastAPI 入口点
+├── Dockerfile.backend            # 后端 Docker 配置
+├── docker-compose.yml            # 多服务编排
+└── README.md                     # 本文件
 ```
 
-### System Architecture
+### 系统架构
 
-**Development Environment:**
+**开发环境：**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│         Next.js Frontend (npm run dev / vercel dev)          │
-│  - Local dev server (Port 3000)                              │
-│  - Real-time SSE streaming (fetch-event-source)              │
-│  - ResearchPanel with sticky positioning                     │
+│         Next.js 前端（npm run dev / vercel dev）             │
+│  - 本地开发服务器（端口 3000）                                 │
+│  - 实时 SSE 流式传输（fetch-event-source）                    │
+│  - 带有固定定位的 ResearchPanel                               │
 │  - useResearchProgress Hook                                  │
 └────────────────────────┬────────────────────────────────────┘
                          │ HTTP/SSE
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          FastAPI Backend (uvicorn --reload)                  │
-│  - Python direct run (Port 8000) - RECOMMENDED               │
-│  - OR Docker Compose (optional, low priority)                │
-│  - REST API + SSE Research Streaming                         │
+│          FastAPI 后端（uvicorn --reload）                    │
+│  - Python 直接运行（端口 8000）- 推荐                         │
+│  - 或 Docker Compose（可选，低优先级）                        │
+│  - REST API + SSE 研究流式传输                               │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Multi-Agent Workflow Engine                     │
+│              多智能体工作流引擎                                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Planner    │→ │  Researcher  │→ │    Writer    │      │
+│  │   规划器     │→ │   研究员     │→ │   写作者     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 │         ↓                                      ↓             │
 │  ┌──────────────┐                      ┌──────────────┐     │
-│  │   Editor     │                      │ Cost Tracker │     │
+│  │   编辑器     │                      │  成本追踪器  │     │
 │  └──────────────┘                      └──────────────┘     │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 API Integration Layer                        │
+│                 API 集成层                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  DeepSeek    │  │   OpenAI     │  │   Tavily     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
@@ -116,204 +116,204 @@ ai-deepresearch-agent/
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            Neon PostgreSQL (SaaS - cloud.neon.tech)          │
-│  - Serverless database for dev AND production                │
-│  - Task state management                                     │
-│  - Research results storage                                  │
+│         Neon PostgreSQL（SaaS - cloud.neon.tech）           │
+│  - 无服务器数据库，用于开发和生产环境                           │
+│  - 任务状态管理                                               │
+│  - 研究结果存储                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Production Environment:**
+**生产环境：**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 Vercel Platform (Edge CDN)                   │
-│  - Next.js 15 deployment                                     │
-│  - Global Edge Network                                       │
-│  - Automatic HTTPS                                           │
-│  - URL: https://your-app.vercel.app                          │
+│              Vercel 平台（Edge CDN）                         │
+│  - Next.js 15 部署                                           │
+│  - 全球边缘网络                                               │
+│  - 自动 HTTPS                                                │
+│  - URL：https://your-app.vercel.app                         │
 └────────────────────────┬────────────────────────────────────┘
                          │ HTTPS
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          Render / Independent Server                         │
-│  - Python uvicorn deployment (RECOMMENDED)                   │
-│  - OR Docker container (optional)                            │
-│  - URL: https://your-backend.onrender.com                    │
+│          Render / 独立服务器                                 │
+│  - Python uvicorn 部署（推荐）                               │
+│  - 或 Docker 容器（可选）                                     │
+│  - URL：https://your-backend.onrender.com                   │
 └────────────────────────┬────────────────────────────────────┘
                          │ SSL/TLS
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            Neon PostgreSQL (Production)                      │
-│  - Serverless PostgreSQL with auto-scaling                   │
-│  - Automatic backups                                         │
-│  - URL: postgresql://...@ep-xxx-prod.neon.tech/...          │
+│            Neon PostgreSQL（生产环境）                        │
+│  - 无服务器 PostgreSQL，自动扩展                              │
+│  - 自动备份                                                   │
+│  - URL：postgresql://...@ep-xxx-prod.neon.tech/...         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 快速开始
 
-### Prerequisites
+### 前置要求
 
-- **Python 3.11+** and **Node.js 18+**
-- **Neon Account** - Free serverless PostgreSQL ([sign up](https://neon.tech))
-- **API Keys**:
-  - [DeepSeek API Key](https://platform.deepseek.com/)
-  - [OpenAI API Key](https://platform.openai.com/)
-  - [Tavily API Key](https://tavily.com/)
+- **Python 3.11+** 和 **Node.js 18+**
+- **Neon 账号** - 免费的无服务器 PostgreSQL（[注册](https://neon.tech)）
+- **API 密钥**：
+  - [DeepSeek API 密钥](https://platform.deepseek.com/)
+  - [OpenAI API 密钥](https://platform.openai.com/)
+  - [Tavily API 密钥](https://tavily.com/)
 
-### Method A: Automated Setup (Recommended)
+### 方法 A：自动化安装（推荐）
 
-#### 1. Clone Repository
+#### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/ameureka/ai-deepresearch-agent.git
 cd ai-deepresearch-agent
 ```
 
-#### 2. Setup Neon Database
+#### 2. 设置 Neon 数据库
 
-1. Visit https://neon.tech and create a free account
-2. Create a new project (e.g., `ai-research-dev`)
-3. Copy the connection string (looks like: `postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require`)
+1. 访问 https://neon.tech 并创建免费账号
+2. 创建新项目（例如：`ai-research-dev`）
+3. 复制连接字符串（格式类似：`postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require`）
 
-#### 3. Configure Environment
+#### 3. 配置环境
 
 ```bash
-# Backend environment
+# 后端环境
 cp .env.example .env
-nano .env  # Add your API keys and Neon DATABASE_URL
+nano .env  # 添加你的 API 密钥和 Neon DATABASE_URL
 
-# Frontend environment
+# 前端环境
 cp ai-chatbot-main/.env.local.example ai-chatbot-main/.env.local
-nano ai-chatbot-main/.env.local  # Add POSTGRES_URL and backend API URL
+nano ai-chatbot-main/.env.local  # 添加 POSTGRES_URL 和后端 API URL
 ```
 
-Required environment variables:
+必需的环境变量：
 
-**.env (Backend):**
+**.env（后端）：**
 ```bash
-# API Keys
+# API 密钥
 DEEPSEEK_API_KEY=sk-your-deepseek-key
 OPENAI_API_KEY=sk-your-openai-key
 TAVILY_API_KEY=tvly-your-tavily-key
 
-# Database (Neon SaaS - same for dev and prod)
+# 数据库（Neon SaaS - 开发和生产环境通用）
 DATABASE_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
 
-# Server Config
+# 服务器配置
 HOST=0.0.0.0
 PORT=8000
 ```
 
-**ai-chatbot-main/.env.local (Frontend):**
+**ai-chatbot-main/.env.local（前端）：**
 ```bash
-# Database (same Neon connection)
+# 数据库（与后端相同的 Neon 连接）
 POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/db?sslmode=require
 
-# Backend API
+# 后端 API
 RESEARCH_API_URL=http://localhost:8000
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
-# Auth
+# 认证
 AUTH_SECRET=your-random-secret-min-32-chars
 ```
 
-#### 4. Run Automated Setup
+#### 4. 运行自动化设置
 
 ```bash
-# Setup backend (creates venv, installs dependencies)
+# 设置后端（创建 venv，安装依赖）
 ./scripts/setup-backend.sh
 
-# Setup frontend (installs npm packages)
+# 设置前端（安装 npm 包）
 ./scripts/setup-frontend.sh
 
-# Start all services (frontend + backend)
+# 启动所有服务（前端 + 后端）
 ./scripts/dev.sh
 ```
 
-This will start:
-- **Frontend**: http://localhost:3000 (Vercel Dev / npm run dev)
-- **Backend**: http://localhost:8000 (Python uvicorn)
-- **Database**: Neon SaaS (no local setup needed!)
+这将启动：
+- **前端**：http://localhost:3000（Vercel Dev / npm run dev）
+- **后端**：http://localhost:8000（Python uvicorn）
+- **数据库**：Neon SaaS（无需本地设置！）
 
-#### 5. Stop Services
+#### 5. 停止服务
 
 ```bash
-# In another terminal
+# 在另一个终端中
 ./scripts/stop-dev.sh
 ```
 
-### Method B: Docker Compose (Optional - Backend Only)
+### 方法 B：Docker Compose（可选 - 仅后端）
 
-⚠️ **Note**: Docker is optional and only for backend deployment (low priority). Frontend always uses Vercel.
+⚠️ **注意**：Docker 是可选的，仅用于后端部署（低优先级）。前端始终使用 Vercel。
 
 ```bash
-# Start backend + PostgreSQL in Docker (for testing)
+# 在 Docker 中启动后端 + PostgreSQL（用于测试）
 docker-compose up -d backend postgres
 
-# Frontend still runs with npm
+# 前端仍然使用 npm 运行
 cd ai-chatbot-main && npm run dev
 ```
 
-See [docker-compose.yml](./docker-compose.yml) for warnings and detailed configuration.
+详见 [docker-compose.yml](./docker-compose.yml) 了解警告和详细配置。
 
-### Method C: Manual Setup (Advanced)
+### 方法 C：手动设置（高级）
 
-For complete manual control, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed instructions including:
-- Manual virtual environment setup
-- Neon database configuration
-- Individual service startup
-- Troubleshooting tips
+要完全手动控制，请参阅[本地开发指南](./docs/LOCAL_DEVELOPMENT.md)获取详细说明，包括：
+- 手动虚拟环境设置
+- Neon 数据库配置
+- 单个服务启动
+- 故障排查提示
 
 ---
 
-## 📖 Usage
+## 📖 使用方法
 
-### Web Interface
+### Web 界面
 
-1. Open http://localhost:3000
-2. Chat with the AI assistant
-3. When AI suggests research, click **"Start Research"** button
-4. Watch real-time progress with SSE streaming
-5. View final research report in chat
+1. 打开 http://localhost:3000
+2. 与 AI 助手聊天
+3. 当 AI 建议研究时，点击 **"开始研究"** 按钮
+4. 通过 SSE 流式传输观看实时进度
+5. 在聊天中查看最终研究报告
 
-### Research Flow (Phase 3 Architecture)
+### 研究流程（第 3 阶段架构）
 
 ```typescript
-User Message: "Tell me about quantum computing"
+用户消息："告诉我关于量子计算的信息"
         ↓
-AI Response: "I can research quantum computing for you..."
+AI 响应："我可以为你研究量子计算..."
         ↓
-ResearchButton appears (sticky at bottom-[72px])
+ResearchButton 出现（固定在 bottom-[72px]）
         ↓
-User clicks "Start Research"
+用户点击"开始研究"
         ↓
-useResearchProgress Hook initiates POST SSE to /api/research/stream
+useResearchProgress Hook 发起 POST SSE 到 /api/research/stream
         ↓
-ResearchProgress displays real-time events:
-  - start: Research started
-  - plan: Research plan generated
-  - progress: Search results found
-  - done: Final report ready
+ResearchProgress 显示实时事件：
+  - start：研究已开始
+  - plan：研究计划已生成
+  - progress：找到搜索结果
+  - done：最终报告已准备好
         ↓
-onComplete callback sends report to chat
+onComplete 回调将报告发送到聊天
         ↓
-AI continues conversation with research context
+AI 继续带有研究上下文的对话
 ```
 
-### API Usage
+### API 使用
 
-#### Start Research Task
+#### 启动研究任务
 
 ```bash
 curl -X POST http://localhost:8000/api/research/stream \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "quantum computing applications"}'
+  -d '{"prompt": "量子计算应用"}'
 ```
 
-#### Health Check
+#### 健康检查
 
 ```bash
 curl http://localhost:8000/health
@@ -321,361 +321,345 @@ curl http://localhost:8000/health
 
 ---
 
-## 🧪 Testing
+## 🧪 测试
 
-### Backend Tests
+### 后端测试
 
 ```bash
-# Run all tests
+# 运行所有测试
 cd /path/to/project
 PYTHONPATH=. pytest tests/ -v
 
-# Run with coverage
+# 运行带覆盖率的测试
 pytest tests/ --cov=src --cov-report=html
 ```
 
-### Frontend Tests
+### 前端测试
 
 ```bash
 cd ai-chatbot-main
 
-# Unit tests
-pnpm test:unit
+# 单元测试
+npm test
 
-# E2E tests (Phase 3 updated)
-pnpm test:e2e
+# E2E 测试（第 3 阶段更新）
+npx playwright test
 
-# Visual regression (Percy)
-export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
-PERCY_TOKEN=*** pnpm test:visual
-
-# Accessibility checks (axe-core)
-export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
-pnpm test:a11y
-
-# Performance audits (Lighthouse CI)
-export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
-pnpm test:perf
-
-# Interactive E2E
-pnpm exec playwright test --ui
+# 交互式 E2E
+npx playwright test --ui
 ```
 
-> Percy 测试会访问 `/research-preview` 场景页面；请仅在本地或具备受控凭据的环境下开启 `NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW`。  
-> 研究端到端流程测试需设置 `RUN_RESEARCH_E2E=true` 且确保 FastAPI 后端与 Neon 数据库可用。
+### E2E 测试覆盖（第 3 阶段）
 
-### E2E Test Coverage (Phase 3)
-
-- ✅ Research keyword detection
-- ✅ ResearchButton display and positioning
-- ✅ ResearchPanel state transitions
-- ✅ useResearchProgress SSE connection
-- ✅ Real-time event streaming
-- ✅ Report completion flow
+- ✅ 研究关键词检测
+- ✅ ResearchButton 显示和定位
+- ✅ ResearchPanel 状态转换
+- ✅ useResearchProgress SSE 连接
+- ✅ 实时事件流式传输
+- ✅ 报告完成流程
 
 ---
 
-## 🔧 Configuration
+## 🔧 配置
 
-### Backend Configuration (.env)
+### 后端配置（.env）
 
 ```bash
-# API Keys
+# API 密钥
 DEEPSEEK_API_KEY=sk-your-key
 OPENAI_API_KEY=sk-your-key
 TAVILY_API_KEY=tvly-your-key
-SERPER_API_KEY=your-key (optional)
+SERPER_API_KEY=your-key（可选）
 
-# Database (Neon SaaS - recommended for both dev and prod)
+# 数据库（Neon SaaS - 推荐用于开发和生产环境）
 DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
 
-# Model Selection
+# 模型选择
 PLANNER_MODEL=deepseek:deepseek-reasoner
 RESEARCHER_MODEL=deepseek:deepseek-chat
 WRITER_MODEL=deepseek:deepseek-chat
 EDITOR_MODEL=deepseek:deepseek-chat
 FALLBACK_MODEL=openai:gpt-4o-mini
 
-# Context Management
+# 上下文管理
 ENABLE_CHUNKING=true
 CHUNKING_THRESHOLD=0.8
 MAX_CHUNK_SIZE=6000
 CHUNK_OVERLAP=200
 
-# Server Config
+# 服务器配置
 HOST=0.0.0.0
 PORT=8000
 LOG_LEVEL=INFO
 ```
 
-### Frontend Configuration (.env.local)
+### 前端配置（.env.local）
 
 ```bash
-# Database (same Neon connection as backend)
+# 数据库（与后端相同的 Neon 连接）
 POSTGRES_URL=postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
 
-# Backend API
-RESEARCH_API_URL=http://localhost:8000       # Server-side
-NEXT_PUBLIC_API_URL=http://localhost:8000    # Client-side
+# 后端 API
+RESEARCH_API_URL=http://localhost:8000       # 服务器端
+NEXT_PUBLIC_API_URL=http://localhost:8000    # 客户端
 
-# Auth
+# 认证
 AUTH_SECRET=your-random-secret-min-32-chars
 AUTH_URL=http://localhost:3000/api/auth
 
-# Vercel Services (optional)
+# Vercel 服务（可选）
 BLOB_READ_WRITE_TOKEN=vercel_blob_xxx
 AI_GATEWAY_API_KEY=vercel_ag_xxx
 
-# Node Environment
+# Node 环境
 NODE_ENV=development
 ```
 
 ---
 
-## 📊 Performance
+## 📊 性能
 
-### Cost Comparison
+### 成本对比
 
-| Task Type | OpenAI (gpt-4o-mini) | DeepSeek | Savings |
-|-----------|---------------------|----------|---------|
-| Research Task | $0.0238 | $0.0129 | **45.8%** |
-| Long Document | $0.0450 | $0.0247 | **45.1%** |
-| Complex Reasoning | $0.0320 | $0.0176 | **45.0%** |
+| 任务类型 | OpenAI (gpt-4o-mini) | DeepSeek | 节省 |
+|---------|---------------------|----------|------|
+| 研究任务 | $0.0238 | $0.0129 | **45.8%** |
+| 长文档 | $0.0450 | $0.0247 | **45.1%** |
+| 复杂推理 | $0.0320 | $0.0176 | **45.0%** |
 
-### Technical Metrics
+### 技术指标
 
-| Metric | Value |
-|--------|-------|
-| **Backend Test Coverage** | 83% (64/64 tests pass) |
-| **Frontend Unit Tests** | 17/17 tests pass |
-| **Max Text Length** | Unlimited (via chunking) |
-| **API Response Time** | < 100ms |
-| **SSE Latency** | < 50ms |
-
----
-
-## 🔄 Version History
-
-### v0.2.0 - Phase 4 Deployment (2025-11-01)
-- ✅ Monorepo structure (frontend + backend at same level)
-- ✅ **Architecture Clarification**:
-  - Frontend: Vercel deployment (NOT Docker)
-  - Backend: Python direct run (recommended) OR Docker (optional)
-  - Database: Neon PostgreSQL SaaS (unified for dev and prod)
-- ✅ Automated setup scripts (setup-backend.sh, setup-frontend.sh, dev.sh)
-- ✅ Production deployment guides (Vercel + Render/Server + Neon)
-- ✅ Complete environment variable documentation
-- ✅ Local development guide with Vercel Dev support
-- ✅ Updated .gitignore for Phase 4
-- ✅ Comprehensive README documentation
-
-### v0.1.5 - Phase 3 Frontend Integration (2025-10-31)
-- ✅ ResearchButton, ResearchPanel, ResearchProgress components
-- ✅ useResearchProgress Hook with POST SSE
-- ✅ Integration in Chat component
-- ✅ Research utility functions
-- ✅ 17 unit tests for all components
-
-### v0.1.2 - Phase 2 API Standardization (2025-10-31)
-- ✅ Unified API response format (ApiResponse)
-- ✅ SSE streaming interface (/api/research/stream)
-- ✅ 5 SSE event types (START, PLAN, PROGRESS, DONE, ERROR)
-- ✅ Global error handling (3-tier exception handlers)
-- ✅ Health check endpoint (/api/health)
-- ✅ Models list endpoint (/api/models)
-- ✅ CORS configuration with environment variables
-- ✅ Complete SSE workflow integration
-- ✅ Real-time progress streaming
-- ✅ Full backward compatibility
-
-### v0.1.0 - Phase 1 & 1.5 (2025-10-31)
-- ✅ DeepSeek API integration
-- ✅ Intelligent context management
-- ✅ Cost optimization (~45% savings)
-- ✅ 64 backend unit tests
+| 指标 | 值 |
+|-----|---|
+| **后端测试覆盖率** | 83%（64/64 测试通过）|
+| **前端单元测试** | 17/17 测试通过 |
+| **最大文本长度** | 无限制（通过分块）|
+| **API 响应时间** | < 100ms |
+| **SSE 延迟** | < 50ms |
 
 ---
 
-## 📚 Documentation
+## 🔄 版本历史
 
-### Core Documentation
-- 🚀 [Quick Start Guide](./QUICK_START.md)
-- 📖 [Phase 4 Deployment Tasks](./.kiro/specs/phase4-deployment/tasks.md)
-- 📊 [Phase 3 Implementation Report](./.kiro/specs/phase3-nextjs-frontend/PHASE3_IMPLEMENTATION_REPORT.md)
-- 🎨 [UI Design Report](./.kiro/specs/phase3-nextjs-frontend/UI_DESIGN_REPORT.md)
+### v0.2.0 - 第 4 阶段部署（2025-11-01）
+- ✅ Monorepo 结构（前端 + 后端同级）
+- ✅ **架构说明**：
+  - 前端：Vercel 部署（不使用 Docker）
+  - 后端：Python 直接运行（推荐）或 Docker（可选）
+  - 数据库：Neon PostgreSQL SaaS（开发和生产环境统一）
+- ✅ 自动化设置脚本（setup-backend.sh、setup-frontend.sh、dev.sh）
+- ✅ 生产环境部署指南（Vercel + Render/服务器 + Neon）
+- ✅ 完整的环境变量文档
+- ✅ 支持 Vercel Dev 的本地开发指南
+- ✅ 更新第 4 阶段的 .gitignore
+- ✅ 全面的 README 文档
 
-### API Documentation
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+### v0.1.5 - 第 3 阶段前端集成（2025-10-31）
+- ✅ ResearchButton、ResearchPanel、ResearchProgress 组件
+- ✅ 带有 POST SSE 的 useResearchProgress Hook
+- ✅ 在 Chat 组件中集成
+- ✅ 研究工具函数
+- ✅ 所有组件的 17 个单元测试
 
-### Development Guides
-- 🤖 [Repository Guidelines](./AGENTS.md) - Contributor workflow and coding standards
-- 💻 [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) - **Complete setup and workflow**
-- 🔧 [Environment Variables Guide](./docs/ENVIRONMENT_VARIABLES.md)
-- 🗄️ [Database Configuration](./docs/DATABASE_CONFIGURATION.md)
-- 🐳 [Docker Compose Setup (Optional)](./.kiro/specs/phase4-deployment/design.md) - Backend only, low priority
-- 🧪 [E2E Testing Guide](./.kiro/specs/phase4-deployment/requirements.md)
-- ✅ [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
+### v0.1.2 - 第 2 阶段 API 标准化（2025-10-31）
+- ✅ 统一 API 响应格式（ApiResponse）
+- ✅ SSE 流式接口（/api/research/stream）
+- ✅ 5 种 SSE 事件类型（START、PLAN、PROGRESS、DONE、ERROR）
+- ✅ 全局错误处理（3 层异常处理器）
+- ✅ 健康检查端点（/api/health）
+- ✅ 模型列表端点（/api/models）
+- ✅ 带环境变量的 CORS 配置
+- ✅ 完整的 SSE 工作流集成
+- ✅ 实时进度流式传输
+- ✅ 完全向后兼容
 
-### Deployment Guides
-- 🚀 [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md) - **Frontend deployment (Vercel platform)**
-- 🌐 [Production Deployment Guide](./docs/PRODUCTION_DEPLOYMENT.md) - **Complete production setup**
-  - Frontend: Vercel
-  - Backend: Render or independent server (Python uvicorn)
-  - Database: Neon PostgreSQL SaaS
+### v0.1.0 - 第 1 和 1.5 阶段（2025-10-31）
+- ✅ DeepSeek API 集成
+- ✅ 智能上下文管理
+- ✅ 成本优化（节省约 45%）
+- ✅ 64 个后端单元测试
 
 ---
 
-## 🐛 Troubleshooting
+## 📚 文档
 
-### Backend Issues
+### 核心文档
+- 🚀 [快速开始指南](./QUICK_START.md)
+- 📖 [第 4 阶段部署任务](./.kiro/specs/phase4-deployment/tasks.md)
+- 📊 [第 3 阶段实施报告](./.kiro/specs/phase3-nextjs-frontend/PHASE3_IMPLEMENTATION_REPORT.md)
+- 🎨 [UI 设计报告](./.kiro/specs/phase3-nextjs-frontend/UI_DESIGN_REPORT.md)
+
+### API 文档
+- Swagger UI：http://localhost:8000/docs
+- ReDoc：http://localhost:8000/redoc
+
+### 开发指南
+- 💻 [本地开发指南](./docs/LOCAL_DEVELOPMENT.md) - **完整的设置和工作流程**
+- 🔧 [环境变量指南](./docs/ENVIRONMENT_VARIABLES.md)
+- 🗄️ [数据库配置](./docs/DATABASE_CONFIGURATION.md)
+- 🐳 [Docker Compose 设置（可选）](./.kiro/specs/phase4-deployment/design.md) - 仅后端，低优先级
+- 🧪 [E2E 测试指南](./.kiro/specs/phase4-deployment/requirements.md)
+- ✅ [部署检查清单](./.kiro/specs/phase4-deployment/tasks.md)
+
+### 部署指南
+- 🚀 [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT.md) - **前端部署（Vercel 平台）**
+- 🌐 [生产环境部署指南](./docs/PRODUCTION_DEPLOYMENT.md) - **完整的生产环境设置**
+  - 前端：Vercel
+  - 后端：Render 或独立服务器（Python uvicorn）
+  - 数据库：Neon PostgreSQL SaaS
+
+---
+
+## 🐛 故障排除
+
+### 后端问题
 
 ```bash
-# Check Python version
-python --version  # Should be 3.11+
+# 检查 Python 版本
+python --version  # 应该是 3.11+
 
-# Recreate virtual environment
+# 重新创建虚拟环境
 rm -rf venv
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows：venv\Scripts\activate
 pip install -r requirements.txt
 
-# Check backend is running
+# 检查后端是否运行
 curl http://localhost:8000/health
 
-# View backend logs
-# Check terminal where uvicorn is running
+# 查看后端日志
+# 检查运行 uvicorn 的终端
 ```
 
-### Frontend Issues
+### 前端问题
 
 ```bash
 cd ai-chatbot-main
 
-# Check Node version
-node --version  # Should be 18+
+# 检查 Node 版本
+node --version  # 应该是 18+
 
-# Clear Next.js cache
+# 清除 Next.js 缓存
 rm -rf .next
 
-# Reinstall dependencies
+# 重新安装依赖
 rm -rf node_modules package-lock.json
 npm install
 
-# Rebuild
+# 重新构建
 npm run build
 
-# Test in development mode
+# 在开发模式下测试
 npm run dev
 ```
 
-### Database Connection Issues (Neon)
+### 数据库连接问题（Neon）
 
 ```bash
-# Test connection manually
+# 手动测试连接
 psql "postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require"
 
-# Common issues:
-# 1. Check DATABASE_URL includes ?sslmode=require
-# 2. Verify Neon database is not suspended (free tier auto-suspends)
-# 3. Check IP allowlist in Neon dashboard (if configured)
-# 4. Ensure connection string has correct password (no special chars issues)
+# 常见问题：
+# 1. 检查 DATABASE_URL 是否包含 ?sslmode=require
+# 2. 验证 Neon 数据库未暂停（免费层会自动暂停）
+# 3. 检查 Neon 控制台中的 IP 允许列表（如果已配置）
+# 4. 确保连接字符串有正确的密码（没有特殊字符问题）
 ```
 
-### Docker Compose Issues (If Using Optional Docker)
+### Docker Compose 问题（如果使用可选 Docker）
 
-⚠️ **Note**: Docker is optional for backend only. Frontend should NOT use Docker.
+⚠️ **注意**：Docker 仅适用于后端（可选）。前端不应使用 Docker。
 
 ```bash
-# Check backend service status
+# 检查后端服务状态
 docker-compose ps
 
-# View backend logs
+# 查看后端日志
 docker-compose logs -f backend
 
-# Rebuild backend only
+# 仅重建后端
 docker-compose build --no-cache backend
 
-# Reset backend
+# 重置后端
 docker-compose down
 docker-compose up -d backend
 
-# Frontend still runs with npm (NOT Docker)
+# 前端仍使用 npm 运行（不使用 Docker）
 cd ai-chatbot-main && npm run dev
 ```
 
-### Common Issues
+### 常见问题
 
-**Issue**: "Cannot connect to backend API"
-- **Solution**: Ensure backend is running on port 8000 and `NEXT_PUBLIC_API_URL=http://localhost:8000` is set
+**问题**："无法连接到后端 API"
+- **解决方案**：确保后端在 8000 端口运行，并且设置了 `NEXT_PUBLIC_API_URL=http://localhost:8000`
 
-**Issue**: "Database connection timeout"
-- **Solution**: Check Neon database status (may be suspended), verify connection string format
+**问题**："数据库连接超时"
+- **解决方案**：检查 Neon 数据库状态（可能已暂停），验证连接字符串格式
 
-**Issue**: "Module not found" errors
-- **Solution**: Run `pip install -r requirements.txt` (backend) or `npm install` (frontend)
+**问题**："Module not found" 错误
+- **解决方案**：运行 `pip install -r requirements.txt`（后端）或 `npm install`（前端）
 
-**Issue**: "Port already in use"
-- **Solution**: Check what's using the port:
+**问题**："端口已被使用"
+- **解决方案**：检查哪个进程在使用该端口：
   ```bash
   # macOS/Linux
-  lsof -i :8000  # Backend
-  lsof -i :3000  # Frontend
+  lsof -i :8000  # 后端
+  lsof -i :3000  # 前端
 
   # Windows
   netstat -ano | findstr :8000
   ```
 
-For more detailed troubleshooting, see:
-- [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md#troubleshooting)
-- [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md#故障排查)
-- [Production Deployment Guide](./docs/PRODUCTION_DEPLOYMENT.md#故障排查)
+有关更详细的故障排除，请参阅：
+- [本地开发指南](./docs/LOCAL_DEVELOPMENT.md#troubleshooting)
+- [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT.md#故障排查)
+- [生产环境部署指南](./docs/PRODUCTION_DEPLOYMENT.md#故障排查)
 
 ---
 
-## 🤝 Contributing
+## 🤝 贡献
 
-We welcome contributions! Please follow these steps:
+我们欢迎贡献！请遵循以下步骤：
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+1. Fork 仓库
+2. 创建功能分支（`git checkout -b feature/AmazingFeature`）
+3. 提交更改（`git commit -m 'Add AmazingFeature'`）
+4. 推送到分支（`git push origin feature/AmazingFeature`）
+5. 打开 Pull Request
 
-### Development Guidelines
-- Follow PEP 8 (Python) and ESLint (TypeScript)
-- Add unit tests for new features
-- Update documentation
-- Ensure all tests pass
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+### 开发指南
+- 遵循 PEP 8（Python）和 ESLint（TypeScript）
+- 为新功能添加单元测试
+- 更新文档
+- 确保所有测试通过
 
 ---
 
-## 🙏 Acknowledgments
+## 📄 许可证
 
-- [DeepSeek](https://www.deepseek.com/) - Cost-effective AI models
-- [OpenAI](https://openai.com/) - Fallback model support
-- [Tavily](https://tavily.com/) - Search API
-- [Vercel](https://vercel.com/) - Next.js and deployment platform
-- [FastAPI](https://fastapi.tiangolo.com/) - Python web framework
-- [aisuite](https://github.com/andrewyng/aisuite) - Unified AI API interface
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 
 ---
 
-## 📞 Contact
+## 🙏 致谢
 
-- **Repository**: https://github.com/ameureka/ai-deepresearch-agent
-- **Issues**: https://github.com/ameureka/ai-deepresearch-agent/issues
-- **Documentation**: https://github.com/ameureka/ai-deepresearch-agent/tree/main/docs
+- [DeepSeek](https://www.deepseek.com/) - 高性价比 AI 模型
+- [OpenAI](https://openai.com/) - 回退模型支持
+- [Tavily](https://tavily.com/) - 搜索 API
+- [Vercel](https://vercel.com/) - Next.js 和部署平台
+- [FastAPI](https://fastapi.tiangolo.com/) - Python Web 框架
+- [aisuite](https://github.com/andrewyng/aisuite) - 统一 AI API 接口
 
 ---
 
-**Made with ❤️ by the AI DeepResearch Team**
+## 📞 联系方式
 
-**Version**: 0.2.0 (Phase 4) | **Last Updated**: 2025-10-31
+- **仓库**：https://github.com/ameureka/ai-deepresearch-agent
+- **问题**：https://github.com/ameureka/ai-deepresearch-agent/issues
+- **文档**：https://github.com/ameureka/ai-deepresearch-agent/tree/main/docs
+
+---
+
+**由 AI DeepResearch 团队用 ❤️ 制作**
+
+**版本**：0.2.0（第 4 阶段）| **最后更新**：2025-11-01
