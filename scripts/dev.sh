@@ -172,7 +172,7 @@ start_frontend() {
     fi
 
     # Start frontend in background
-    nohup $PACKAGE_MANAGER run dev -- --port $FRONTEND_PORT \
+    nohup $PACKAGE_MANAGER run dev --port $FRONTEND_PORT \
         > "../$LOG_DIR/frontend.log" 2>&1 &
 
     FRONTEND_PID=$!

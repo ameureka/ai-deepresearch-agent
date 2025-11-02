@@ -8,6 +8,8 @@
 5. Phase 2: 标准化 API 和 SSE 流式接口
 """
 
+from __future__ import annotations
+
 import os
 import uuid
 import json
@@ -15,7 +17,8 @@ import threading
 import logging
 import traceback
 from datetime import datetime
-from typing import Optional, Literal
+from queue import Queue
+from typing import Optional, Literal, Dict, Any
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import create_engine, Column, Text, DateTime, String
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.dialects.postgresql import UUID as PGUUID, JSONB
 from dotenv import load_dotenv
 
 from src.planning_agent import planner_agent, executor_agent_step
@@ -67,6 +71,255 @@ Base = declarative_base()
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine)
 
+research_task_queue: Queue = Queue()
+worker_thread: Optional[threading.Thread] = None
+worker_stop_event = threading.Event()
+
+
+def default_progress() -> Dict[str, Any]:
+    return {
+        "currentStep": None,
+        "totalSteps": None,
+        "completedSteps": 0,
+        "events": [],
+    }
+
+
+def ensure_progress(task: ResearchTask) -> Dict[str, Any]:
+    progress = task.progress or {}
+    if not isinstance(progress, dict):
+        progress = {}
+    events = progress.get("events", [])
+    if not isinstance(events, list):
+        events = list(events) if events else []
+    progress["events"] = events
+    progress.setdefault("currentStep", None)
+    progress.setdefault("totalSteps", None)
+    progress.setdefault("completedSteps", 0)
+    task.progress = progress
+    return progress
+
+
+def ensure_queue_info(task: "ResearchTask") -> Dict[str, Any]:
+    queue_info = task.queue_info or {}
+    if not isinstance(queue_info, dict):
+        queue_info = {}
+    task.queue_info = queue_info
+    return queue_info
+
+
+def add_event(task: ResearchTask, event_type: str, message: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    progress = ensure_progress(task)
+    event = {
+        "type": event_type,
+        "message": message,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+    if extra:
+        event.update(extra)
+    progress["events"].append(event)
+    task.progress = progress
+    task.updated_at = datetime.utcnow()
+    return event
+
+
+def serialize_progress(progress: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not progress or not isinstance(progress, dict):
+        return default_progress()
+    events = progress.get("events", [])
+    if not isinstance(events, list):
+        events = list(events)
+    return {
+        "currentStep": progress.get("currentStep"),
+        "totalSteps": progress.get("totalSteps"),
+        "completedSteps": progress.get("completedSteps", 0),
+        "events": events,
+    }
+
+
+def serialize_queue_info(queue_info: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not queue_info or not isinstance(queue_info, dict):
+        return {}
+    sanitized = {}
+    for key, value in queue_info.items():
+        if isinstance(value, (str, int, float, type(None))):
+            sanitized[key] = value
+        else:
+            try:
+                sanitized[key] = json.loads(json.dumps(value))
+            except Exception:
+                sanitized[key] = str(value)
+    return sanitized
+
+
+def run_research_task(queue_item: Dict[str, Any]) -> None:
+    task_id = queue_item.get("task_id")
+    prompt = queue_item.get("prompt")
+    model = queue_item.get("model")
+
+    if not task_id:
+        logger.error("Queue item missing task_id, skipping execution")
+        return
+
+    session = SessionLocal()
+    try:
+        task: Optional[ResearchTask] = (
+            session.query(ResearchTask)
+            .filter(ResearchTask.task_id == task_id)
+            .one_or_none()
+        )
+
+        if not task:
+            logger.error(f"ResearchTask with task_id {task_id} not found, skipping execution.")
+            return
+
+        if prompt:
+            task.topic = prompt
+        prompt_to_use = task.topic
+
+        if not prompt_to_use:
+            logger.error(f"ResearchTask {task_id} lacks prompt/topic, marking as failed.")
+            task.status = "failed"
+            add_event(task, "error", "Prompt is required but missing.")
+            session.commit()
+            return
+
+        queue_info = ensure_queue_info(task)
+        if "enqueuedAt" not in queue_info:
+            queue_info["enqueuedAt"] = datetime.utcnow().isoformat() + "Z"
+        queue_info["startedAt"] = datetime.utcnow().isoformat() + "Z"
+        queue_info["workerId"] = threading.current_thread().name
+        retry_count = queue_info.get("retryCount", 0)
+        if not isinstance(retry_count, int):
+            try:
+                retry_count = int(retry_count)  # type: ignore[arg-type]
+            except Exception:
+                retry_count = 0
+        queue_info["retryCount"] = retry_count
+        task.queue_info = queue_info
+
+        task.status = "running"
+        ensure_progress(task)
+        add_event(task, "start", "Research started", {"prompt": prompt_to_use})
+        task.started_at = datetime.utcnow()
+        session.commit()
+
+        execution_history = []
+
+        steps = planner_agent(prompt_to_use, model=model)
+        add_event(task, "plan", "Research plan generated", {"steps": steps})
+        progress = ensure_progress(task)
+        progress["totalSteps"] = len(steps)
+        progress["completedSteps"] = 0
+        progress["currentStep"] = None
+        task.progress = progress
+        session.commit()
+
+        for index, step_title in enumerate(steps):
+            step_number = index + 1
+            add_event(
+                task,
+                "progress",
+                step_title,
+                {"step": step_number, "total": len(steps)},
+            )
+            progress = ensure_progress(task)
+            progress["completedSteps"] = step_number
+            progress["currentStep"] = step_title
+            task.progress = progress
+            session.commit()
+
+            step_desc, agent_name, output = executor_agent_step(
+                step_title, execution_history, prompt_to_use
+            )
+            execution_history.append([step_title, step_desc, output])
+            logger.info(
+                f"Task {task_id}: step {step_number}/{len(steps)} completed using {agent_name}"
+            )
+
+        final_report = (
+            execution_history[-1][2] if execution_history else "未生成报告。"
+        )
+
+        add_event(task, "done", "Research completed", {"report": final_report})
+        progress = ensure_progress(task)
+        progress["completedSteps"] = progress.get("totalSteps") or len(steps)
+        progress["currentStep"] = None
+        task.progress = progress
+        task.status = "completed"
+        task.report = final_report
+        queue_info = ensure_queue_info(task)
+        queue_info["finishedAt"] = datetime.utcnow().isoformat() + "Z"
+        task.queue_info = queue_info
+        task.completed_at = datetime.utcnow()
+        task.updated_at = datetime.utcnow()
+        session.commit()
+        logger.info(f"Task {task_id} completed successfully.")
+
+    except Exception as exc:
+        logger.error(f"Task {task_id} failed: {exc}")
+        logger.error(traceback.format_exc())
+        session.rollback()
+        task = (
+            session.query(ResearchTask)
+            .filter(ResearchTask.task_id == task_id)
+            .one_or_none()
+        )
+        if task:
+            ensure_progress(task)
+            add_event(task, "error", f"Task failed: {exc}")
+            progress = ensure_progress(task)
+            progress["currentStep"] = None
+            task.progress = progress
+            task.status = "failed"
+            queue_info = ensure_queue_info(task)
+            queue_info["failedAt"] = datetime.utcnow().isoformat() + "Z"
+            task.queue_info = queue_info
+            task.failed_at = datetime.utcnow()
+            task.updated_at = datetime.utcnow()
+            session.commit()
+    finally:
+        session.close()
+
+
+def worker_loop() -> None:
+    logger.info("Research worker started.")
+    while not worker_stop_event.is_set():
+        try:
+            queue_item = research_task_queue.get()
+            if queue_item is None:
+                research_task_queue.task_done()
+                break
+            run_research_task(queue_item)
+        except Exception as exc:
+            logger.error(f"Unexpected error in worker loop: {exc}")
+            logger.error(traceback.format_exc())
+        finally:
+            research_task_queue.task_done()
+    logger.info("Research worker stopped.")
+
+
+def start_worker() -> None:
+    global worker_thread
+    if worker_thread and worker_thread.is_alive():
+        return
+    worker_stop_event.clear()
+    worker_thread = threading.Thread(
+        target=worker_loop, name="ResearchWorker", daemon=True
+    )
+    worker_thread.start()
+
+
+def stop_worker() -> None:
+    global worker_thread
+    if worker_thread and worker_thread.is_alive():
+        worker_stop_event.set()
+        research_task_queue.put(None)
+        worker_thread.join(timeout=5)
+        logger.info("Research worker thread joined.")
+        worker_thread = None
+
+
 
 class Task(Base):
     """
@@ -80,6 +333,30 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)  # 创建时间
     updated_at = Column(DateTime, default=datetime.utcnow)  # 更新时间
     result = Column(Text)  # 任务结果（JSON 格式）
+
+
+class ResearchTask(Base):
+    """
+    research_tasks 表模型 - 与 Next.js Drizzle 表结构保持对齐
+    """
+
+    __tablename__ = "research_tasks"
+    __table_args__ = {"extend_existing": True}
+
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    task_id = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(PGUUID(as_uuid=True), nullable=True)
+    chat_id = Column(PGUUID(as_uuid=True), nullable=True)
+    topic = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="queued")
+    progress = Column(JSONB, nullable=True)
+    report = Column(Text, nullable=True)
+    queue_info = Column(JSONB, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    failed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # 创建数据库表（如果不存在）
@@ -96,6 +373,16 @@ app = FastAPI(
     description="多代理研究报告生成系统 - Phase 2 标准化 API",
     version="2.0.0"
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    start_worker()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    stop_worker()
 
 # === Phase 2: 配置 CORS 中间件（更严格的配置）===
 # 从环境变量读取允许的来源，如果未设置则使用默认值
@@ -233,20 +520,39 @@ class PromptRequest(BaseModel):
     prompt: str
 
 
+class QueueResearchTaskRequest(BaseModel):
+    """研究任务排队请求模型"""
+
+    taskId: str
+    prompt: Optional[str] = None
+    model: Optional[str] = None
+
+
 @app.get("/", response_class=HTMLResponse)
 def read_index(request: Request):
     """
-    首页路由 - 返回主界面 HTML（旧版轮询接口）
+    首页路由 - 返回 SSE 流式接口界面（Phase 2 标准）
+    """
+    return templates.TemplateResponse("index-sse.html", {"request": request})
+
+
+@app.get("/legacy", response_class=HTMLResponse)
+def read_legacy_index(request: Request):
+    """
+    旧版轮询接口界面（已弃用，保留用于兼容）
     """
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/sse", response_class=HTMLResponse)
-def read_sse_index(request: Request):
+@app.get("/health", response_class=JSONResponse)
+def health_check_legacy():
     """
-    SSE 测试页面路由 - Phase 2 流式接口测试
+    健康检查端点 - 用于验证服务是否正常运行
+
+    【简化版本】用于启动脚本和快速健康检查
+    详细健康信息请使用 /api/health
     """
-    return templates.TemplateResponse("index-sse.html", {"request": request})
+    return {"status": "ok"}
 
 
 @app.get("/api", response_class=JSONResponse)
@@ -257,6 +563,111 @@ def health_check(request: Request):
     【已弃用】此端点保留用于向后兼容，请使用 /api/health
     """
     return {"status": "ok"}
+
+
+@app.post("/api/research/tasks")
+async def enqueue_research_task(request: QueueResearchTaskRequest):
+    """
+    将研究任务加入后台队列执行
+    """
+    session = SessionLocal()
+    try:
+        task: Optional[ResearchTask] = (
+            session.query(ResearchTask)
+            .filter(ResearchTask.task_id == request.taskId)
+            .one_or_none()
+        )
+        if not task:
+            raise HTTPException(status_code=404, detail="Research task not found")
+
+        prompt = request.prompt or task.topic
+        if not prompt or not prompt.strip():
+            raise HTTPException(status_code=400, detail="Prompt is required")
+
+        previous_status = task.status
+        task.topic = prompt
+        task.status = "queued"
+        task.report = None
+        task.progress = default_progress()
+        task.started_at = None
+        task.completed_at = None
+        task.failed_at = None
+
+        queue_info = ensure_queue_info(task)
+        previous_retries = queue_info.get("retryCount", 0)
+        if not isinstance(previous_retries, int):
+            try:
+                previous_retries = int(previous_retries)  # type: ignore[arg-type]
+            except Exception:
+                previous_retries = 0
+        queue_info.clear()
+        now_iso = datetime.utcnow().isoformat() + "Z"
+        queue_info["enqueuedAt"] = now_iso
+        queue_info["retryCount"] = (
+            previous_retries + 1 if previous_status in {"failed", "cancelled"} else previous_retries
+        )
+        task.queue_info = queue_info
+
+        add_event(task, "queued", "Task queued for execution")
+        session.commit()
+    finally:
+        session.close()
+
+    research_task_queue.put(
+        {"task_id": request.taskId, "prompt": prompt, "model": request.model}
+    )
+    logger.info(f"Task {request.taskId} enqueued for execution.")
+    return {"taskId": request.taskId, "status": "queued"}
+
+
+@app.get("/api/research/tasks/{task_id}")
+async def get_research_task_status(task_id: str):
+    """
+    查询研究任务最新状态
+    """
+    session = SessionLocal()
+    try:
+        task: Optional[ResearchTask] = (
+            session.query(ResearchTask)
+            .filter(ResearchTask.task_id == task_id)
+            .one_or_none()
+        )
+        if not task:
+            raise HTTPException(status_code=404, detail="Research task not found")
+
+        progress = serialize_progress(task.progress)
+        queue_info = serialize_queue_info(task.queue_info)
+        created_at = (
+            task.created_at.isoformat() + "Z" if task.created_at else None
+        )
+        updated_at = (
+            task.updated_at.isoformat() + "Z" if task.updated_at else None
+        )
+        started_at = (
+            task.started_at.isoformat() + "Z" if task.started_at else None
+        )
+        completed_at = (
+            task.completed_at.isoformat() + "Z" if task.completed_at else None
+        )
+        failed_at = (
+            task.failed_at.isoformat() + "Z" if task.failed_at else None
+        )
+
+        return {
+            "taskId": task.task_id,
+            "status": task.status,
+            "topic": task.topic,
+            "progress": progress,
+            "report": task.report,
+            "queueInfo": queue_info,
+            "startedAt": started_at,
+            "completedAt": completed_at,
+            "failedAt": failed_at,
+            "createdAt": created_at,
+            "updatedAt": updated_at,
+        }
+    finally:
+        session.close()
 
 
 # === Phase 2: 标准化 API 接口 ===
@@ -750,19 +1161,16 @@ async def research_stream(request: ResearchRequest):
             # === 2. PLAN 事件 - 调用 planner_agent ===
             logger.info("🧠 调用 planner_agent 生成执行计划")
             try:
-                # planner_agent 返回 List[str] (步骤列表)
                 steps = planner_agent(
                     request.prompt,
-                    model=request.model  # 使用用户指定的模型（如果有）
+                    model=request.model
                 )
                 logger.info(f"✅ 生成了 {len(steps)} 个执行步骤")
             except Exception as e:
                 logger.error(f"❌ planner_agent 失败: {e}")
-                # 如果规划失败，发送错误事件并终止
                 yield create_error_event(f"Failed to generate plan: {str(e)}")
                 return
 
-            # 发送 PLAN 事件
             logger.info("📤 发送 PLAN 事件")
             yield create_plan_event(steps)
 
@@ -770,7 +1178,6 @@ async def research_stream(request: ResearchRequest):
             execution_history = []
 
             for i, step_title in enumerate(steps):
-                # 发送 PROGRESS 事件
                 step_number = i + 1
                 logger.info(f"📤 发送 PROGRESS 事件: {step_number}/{len(steps)}")
                 yield create_progress_event(
@@ -779,50 +1186,36 @@ async def research_stream(request: ResearchRequest):
                     message=step_title
                 )
 
-                # 执行步骤
                 logger.info(f"⚙️  执行步骤 {step_number}: {step_title[:50]}...")
                 try:
-                    # executor_agent_step 返回: (step_description, agent_name, output)
-                    # 注意：executor_agent_step 不支持 model 参数，使用默认配置
                     step_desc, agent_name, output = executor_agent_step(
                         step_title,
                         execution_history,
                         request.prompt
                     )
-
-                    # 添加到历史记录
                     execution_history.append([step_title, step_desc, output])
-
                     logger.info(
                         f"✅ 步骤 {step_number} 完成，"
                         f"使用代理: {agent_name}，"
                         f"输出长度: {len(output)} 字符"
                     )
-
                 except Exception as e:
-                    # 步骤执行失败
                     logger.error(f"❌ 步骤 {step_number} 执行失败: {e}")
                     yield create_error_event(
                         message=f"Step {step_number} failed: {str(e)}",
                         step=step_number
                     )
-                    # 注意：继续执行还是终止？这里选择终止
-                    # 如果要继续执行，去掉 return 语句
                     return
 
-            # === 4. DONE 事件 - 发送最终报告 ===
             if execution_history:
-                # 最后一步的输出就是最终报告
-                final_report = execution_history[-1][2]  # [step_title, step_desc, output]
+                final_report = execution_history[-1][2]
                 logger.info(f"📤 发送 DONE 事件，报告长度: {len(final_report)} 字符")
                 yield create_done_event(final_report)
             else:
-                # 没有历史记录（不应该发生）
                 logger.warning("⚠️ 执行历史为空，无法生成报告")
                 yield create_error_event("No report generated")
 
         except Exception as e:
-            # === 5. ERROR 事件 - 捕获所有未处理的异常 ===
             logger.error(f"❌ SSE 生成器发生未处理的异常: {e}\n{traceback.format_exc()}")
             yield create_error_event(f"Internal error: {str(e)}")
 

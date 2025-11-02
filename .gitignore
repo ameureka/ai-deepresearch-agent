@@ -224,6 +224,8 @@ ai-chatbot-main/test-results/
 ai-chatbot-main/playwright-report/
 ai-chatbot-main/blob-report/
 ai-chatbot-main/playwright/.cache/
+ai-chatbot-main/.percy-maps/
+ai-chatbot-main/percy.log
 
 # TypeScript
 ai-chatbot-main/*.tsbuildinfo

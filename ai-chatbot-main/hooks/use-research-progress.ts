@@ -1,292 +1,375 @@
 "use client";
 
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * SSE Event Types from FastAPI Backend
- */
 export type ResearchEventType =
+  | "queued"
   | "start"
   | "plan"
   | "progress"
   | "done"
   | "error";
 
-/**
- * Research Event Structure
- */
 export interface ResearchEvent {
   type: ResearchEventType;
-  data: any;
+  data: Record<string, unknown>;
   timestamp?: number;
+  taskId?: string;
+  chatId?: string;
+  userId?: string;
 }
 
-/**
- * Research Status
- */
 export type ResearchStatus =
-  | "idle" // Not started
-  | "connecting" // Connecting to backend
-  | "streaming" // Receiving events
-  | "done" // Completed successfully
-  | "error"; // Failed with error
+  | "idle"
+  | "queued"
+  | "running"
+  | "done"
+  | "error";
 
-/**
- * Hook Options
- */
+export interface ResearchQueueInfo {
+  enqueuedAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  failedAt?: string;
+  workerId?: string;
+  retryCount?: number;
+}
+
+type VisibilityType = "private" | "public";
+
 export interface UseResearchProgressOptions {
-  prompt: string | null; // Research query (null = don't start)
-  onComplete?: (report: string) => void; // Callback when research completes
-  onError?: (error: Error) => void; // Callback when error occurs
+  prompt: string | null;
+  chatId?: string | null;
+  onComplete?: (report: string) => void;
+  onError?: (error: Error) => void;
+  visibility?: VisibilityType;
 }
 
-/**
- * Hook Return Value
- */
 export interface UseResearchProgressReturn {
-  events: ResearchEvent[]; // All events received
-  status: ResearchStatus; // Current status
-  error: Error | null; // Error if status is "error"
-  cancel: () => void; // Cancel current research
-  retry: () => void; // Retry failed research
+  events: ResearchEvent[];
+  status: ResearchStatus;
+  error: Error | null;
+  report: string | null;
+  isAutoRetrying: boolean;
+  cancel: () => void;
+  retry: () => void;
+  taskId: string | null;
+  taskOwnerId: string | null;
+  queueInfo: ResearchQueueInfo | null;
 }
 
-/**
- * useResearchProgress Hook
- *
- * Connects to the research API endpoint and streams SSE events.
- * Automatically starts when prompt changes from null to a string.
- * Calls onComplete when research finishes with the final report.
- *
- * @example
- * ```tsx
- * const { events, status } = useResearchProgress({
- *   prompt: "quantum computing",
- *   onComplete: (report) => {
- *     sendMessage({
- *       role: 'user',
- *       parts: [{ type: 'text', text: `Research completed:\n\n${report}` }]
- *     });
- *   }
- * });
- * ```
- */
+type RawProgressEvent = {
+  type?: string;
+  message?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+};
+
+const POLL_INTERVAL_MS = 2000;
+
+const mapEvents = (
+  rawEvents: RawProgressEvent[],
+  taskId: string,
+  chatId?: string | null,
+  userId?: string | null
+): ResearchEvent[] =>
+  rawEvents.map(raw => ({
+    type: (raw.type as ResearchEventType) ?? "progress",
+    data: {
+      ...raw,
+      taskId,
+      chatId,
+      userId,
+    },
+    timestamp: raw.timestamp ? Date.parse(raw.timestamp) : undefined,
+    taskId,
+    chatId: chatId ?? undefined,
+    userId: userId ?? undefined,
+  }));
+
+const extractFailureMessage = (events: ResearchEvent[]): string | null => {
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const evt = events[i];
+    const message = evt.data?.message;
+    if (evt.type === "error" && typeof message === "string") {
+      return message;
+    }
+  }
+  return null;
+};
+
+type TaskStatusResponse = {
+  taskId: string;
+  status: string;
+  topic?: string | null;
+  progress?: {
+    currentStep?: string | null;
+    totalSteps?: number | null;
+    completedSteps?: number | null;
+    events?: RawProgressEvent[];
+  } | null;
+  report?: string | null;
+  userId?: string | null;
+  chatId?: string | null;
+  queueInfo?: ResearchQueueInfo | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  failedAt?: string | null;
+};
+
 export function useResearchProgress({
   prompt,
+  chatId,
   onComplete,
   onError,
+  visibility = "private",
 }: UseResearchProgressOptions): UseResearchProgressReturn {
   const [events, setEvents] = useState<ResearchEvent[]>([]);
   const [status, setStatus] = useState<ResearchStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
+  const [report, setReport] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [taskOwnerId, setTaskOwnerId] = useState<string | null>(null);
+  const [queueInfo, setQueueInfo] = useState<ResearchQueueInfo | null>(null);
 
-  // Use refs to track abort controller and prevent duplicate connections
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const statusRef = useRef<ResearchStatus>("idle");
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const currentPromptRef = useRef<string | null>(null);
+  const currentTaskIdRef = useRef<string | null>(null);
 
-  /**
-   * Cancel current research
-   */
-  const cancel = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setStatus("idle");
+  const updateStatus = useCallback((next: ResearchStatus) => {
+    statusRef.current = next;
+    setStatus(next);
   }, []);
 
-  /**
-   * Retry failed research
-   */
-  const retry = useCallback(() => {
-    if (currentPromptRef.current) {
-      setError(null);
-      setEvents([]);
-      setStatus("connecting");
-      // Trigger re-connection by updating a ref
-      startResearch(currentPromptRef.current);
+  const clearPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
     }
   }, []);
 
-  /**
-   * Start research with given prompt
-   */
-  const startResearch = useCallback(
-    async (researchPrompt: string) => {
-      // Cancel any existing connection
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  const fetchTaskStatus = useCallback(
+    async (taskIdValue: string) => {
+      const response = await fetch(`/api/research/tasks/${taskIdValue}`);
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message =
+          payload.error ||
+          payload.message ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(message);
       }
 
-      // Create new abort controller
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-      currentPromptRef.current = researchPrompt;
+      const payload = (await response.json()) as TaskStatusResponse;
+      const mappedEvents = mapEvents(
+        payload.progress?.events ?? [],
+        payload.taskId,
+        payload.chatId ?? null,
+        payload.userId ?? null
+      );
 
-      // Reset state
+      setEvents(mappedEvents);
+      setTaskOwnerId(payload.userId ?? null);
+      setQueueInfo(payload.queueInfo ?? null);
+
+      if (typeof payload.report === "string") {
+        setReport(payload.report);
+      }
+
+      switch (payload.status) {
+        case "queued":
+        case "pending":
+          updateStatus("queued");
+          break;
+        case "running":
+        case "planning":
+        case "researching":
+        case "writing":
+          updateStatus("running");
+          break;
+        case "completed": {
+          updateStatus("done");
+          clearPolling();
+          const finalReport = payload.report ?? "";
+          if (finalReport && onComplete) {
+            onComplete(finalReport);
+          }
+          break;
+        }
+        case "failed": {
+          const failureMessage =
+            extractFailureMessage(mappedEvents) ?? "Research failed";
+          const failureError = new Error(failureMessage);
+          setError(failureError);
+          updateStatus("error");
+          clearPolling();
+          if (onError) {
+            onError(failureError);
+          }
+          break;
+        }
+        case "cancelled": {
+          const cancellationError = new Error("Research task was cancelled");
+          setError(cancellationError);
+          updateStatus("error");
+          clearPolling();
+          if (onError) {
+            onError(cancellationError);
+          }
+          break;
+        }
+        default:
+          updateStatus("running");
+          break;
+      }
+    },
+    [clearPolling, onComplete, onError, updateStatus]
+  );
+
+  const schedulePolling = useCallback(
+    (taskIdValue: string) => {
+      const poll = async () => {
+        try {
+          await fetchTaskStatus(taskIdValue);
+        } catch (err) {
+          const errorObj =
+            err instanceof Error
+              ? err
+              : new Error("Failed to fetch research status");
+          setError(errorObj);
+          updateStatus("error");
+          clearPolling();
+          if (onError) {
+            onError(errorObj);
+          }
+        }
+      };
+
+      poll();
+      pollingRef.current = setInterval(poll, POLL_INTERVAL_MS);
+    },
+    [clearPolling, fetchTaskStatus, onError, updateStatus]
+  );
+
+  const startResearch = useCallback(
+    async (researchPrompt: string) => {
+      clearPolling();
       setEvents([]);
       setError(null);
-      setStatus("connecting");
+      setReport(null);
+      setTaskId(null);
+      setTaskOwnerId(null);
+      setQueueInfo(null);
+      updateStatus("queued");
+
+      currentPromptRef.current = researchPrompt;
+      currentTaskIdRef.current = null;
 
       try {
-        await fetchEventSource("/api/research/stream", {
+        const response = await fetch("/api/research/tasks", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ prompt: researchPrompt }),
-          signal: abortController.signal,
-
-          onopen: async (response) => {
-            if (response.ok) {
-              setStatus("streaming");
-              return; // Connection established
-            }
-
-            // Handle HTTP errors
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage =
-              errorData.error ||
-              `HTTP ${response.status}: ${response.statusText}`;
-
-            throw new Error(errorMessage);
-          },
-
-          onmessage: (event) => {
-            // Parse event data
-            let eventData: any;
-
-            try {
-              eventData = JSON.parse(event.data);
-            } catch {
-              eventData = event.data;
-            }
-
-            const researchEvent: ResearchEvent = {
-              type: (event.event || "progress") as ResearchEventType,
-              data: eventData,
-              timestamp: Date.now(),
-            };
-
-            // Add event to list
-            setEvents((prev) => [...prev, researchEvent]);
-
-            // Handle done event
-            if (researchEvent.type === "done") {
-              setStatus("done");
-
-              // Extract report and call onComplete
-              const report = eventData.report || eventData.message || "";
-              if (onComplete) {
-                onComplete(report);
-              }
-
-              // Clean up
-              abortControllerRef.current = null;
-            }
-
-            // Handle error event
-            if (researchEvent.type === "error") {
-              const errorMsg =
-                eventData.error || eventData.message || "Unknown error";
-              const err = new Error(errorMsg);
-              setError(err);
-              setStatus("error");
-
-              if (onError) {
-                onError(err);
-              }
-
-              // Clean up
-              abortControllerRef.current = null;
-            }
-          },
-
-          onerror: (err) => {
-            // Check if this was intentional cancellation
-            if (abortController.signal.aborted) {
-              return; // Don't treat abort as error
-            }
-
-            const error =
-              err instanceof Error
-                ? err
-                : new Error(
-                    typeof err === "string"
-                      ? err
-                      : "Failed to connect to research backend"
-                  );
-
-            setError(error);
-            setStatus("error");
-
-            if (onError) {
-              onError(error);
-            }
-
-            // Clean up
-            abortControllerRef.current = null;
-
-            // Don't retry automatically - let user decide
-            throw error; // Stop fetchEventSource
-          },
-
-          onclose: () => {
-            // Connection closed normally
-            if (status !== "done" && status !== "error") {
-              // Unexpected close
-              const error = new Error("Connection closed unexpectedly");
-              setError(error);
-              setStatus("error");
-
-              if (onError) {
-                onError(error);
-              }
-            }
-
-            // Clean up
-            abortControllerRef.current = null;
-          },
+          body: JSON.stringify({
+            prompt: researchPrompt,
+            chatId: chatId ?? null,
+            visibility,
+          }),
         });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          const message =
+            payload.error ||
+            payload.message ||
+            `HTTP ${response.status}: ${response.statusText}`;
+          throw new Error(message);
+        }
+
+        const payload = (await response.json()) as { taskId: string };
+        const newTaskId = payload.taskId;
+        setTaskId(newTaskId);
+        currentTaskIdRef.current = newTaskId;
+        updateStatus("queued");
+        setQueueInfo({
+          enqueuedAt: new Date().toISOString(),
+          retryCount: 0,
+        });
+        schedulePolling(newTaskId);
       } catch (err) {
-        // fetchEventSource throws when onerror throws
-        // Error already handled in onerror callback
-        console.error("Research connection error:", err);
+        const errorObj =
+          err instanceof Error
+            ? err
+            : new Error("Failed to start research task");
+        setError(errorObj);
+        updateStatus("error");
+        if (onError) {
+          onError(errorObj);
+        }
       }
     },
-    [onComplete, onError, status]
+    [chatId, clearPolling, onError, schedulePolling, updateStatus]
   );
 
-  /**
-   * Effect: Start research when prompt changes
-   */
-  useEffect(() => {
-    if (prompt && prompt.trim().length > 0) {
-      // Only start if not already running
-      if (status === "idle" || status === "error") {
-        startResearch(prompt.trim());
-      }
-    }
-  }, [prompt, status, startResearch]); // Include all dependencies
+  const cancel = useCallback(() => {
+    clearPolling();
+    setEvents([]);
+    setError(null);
+    setReport(null);
+    setTaskId(null);
+    setTaskOwnerId(null);
+    setQueueInfo(null);
+    updateStatus("idle");
+    currentTaskIdRef.current = null;
+    currentPromptRef.current = null;
+  }, [clearPolling, updateStatus]);
 
-  /**
-   * Effect: Cleanup on unmount
-   */
+  const retry = useCallback(() => {
+    if (currentPromptRef.current) {
+      startResearch(currentPromptRef.current);
+    }
+  }, [startResearch]);
+
+  useEffect(() => {
+    if (!prompt) {
+      return;
+    }
+
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    if (
+      currentPromptRef.current === trimmed &&
+      statusRef.current !== "idle" &&
+      statusRef.current !== "error"
+    ) {
+      return;
+    }
+
+    startResearch(trimmed);
+  }, [prompt, startResearch]);
+
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
+      clearPolling();
     };
-  }, []);
+  }, [clearPolling]);
 
   return {
     events,
     status,
     error,
+    report,
+    isAutoRetrying: false,
     cancel,
     retry,
+    taskId,
+    taskOwnerId,
+    queueInfo,
   };
 }

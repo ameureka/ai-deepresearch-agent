@@ -158,6 +158,18 @@ POSTGRES_URL=postgresql://user:pass@ep-xxx-dev.neon.tech/dev_db?sslmode=require
 
 # Auth
 AUTH_SECRET=your-generated-secret-here
+
+# Testing & CI Variables
+
+以下变量用于 Phase 4.5 自动化测试与可视化回归流程：
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `PERCY_TOKEN` | Percy 项目访问令牌，用于上传视觉回归快照 | `percy-project-token` |
+| `PERCY_BRANCH` *(optional)* | Percy 分支名覆盖，用于基线管理 | `phase4.5-baseline` |
+| `PERCY_TARGET_BRANCH` *(optional)* | Percy 基线目标分支 | `main` |
+| `NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW` *(optional)* | 允许访问 `/research-preview` 可视化场景（本地/测试环境开启） | `true` |
+| `RUN_RESEARCH_E2E` *(optional)* | 启用真实研究 E2E 流程测试 | `true` |
 NEXTAUTH_URL=http://localhost:3000
 
 # Backend API (本地 Python 后端)
@@ -167,6 +179,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 # Development
 NODE_ENV=development
 ```
+
+> ⚠️ Phase 4.5 研究相关的 E2E 测试会自动创建并清理 `research_tasks` 记录，无需手动配置测试用户或任务 ID。
 
 **重要说明：**
 - 本地开发和生产环境都使用 Neon 数据库

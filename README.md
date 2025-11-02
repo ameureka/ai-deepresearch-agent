@@ -6,7 +6,7 @@ English | [简体中文](./README.zh-CN.md)
 
 A production-ready AI research assistant featuring a modern Next.js frontend with real-time research progress tracking and a FastAPI backend powered by multiple specialized agents (Planner, Researcher, Writer, Editor).
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
+[![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -15,11 +15,12 @@ A production-ready AI research assistant featuring a modern Next.js frontend wit
 
 ## 🎯 Features
 
-### ✨ Full-Stack Integration (Phase 3 & 4)
+### ✨ Full-Stack Integration (Phase 3 & 4.5)
 - **Modern UI**: Next.js 15 with App Router and Server Components
-- **Real-Time Updates**: SSE-based research progress streaming
+- **Real-Time Updates**: SSE-based research progress streaming + queue telemetry
 - **Responsive Design**: Mobile-first with sticky research panel
 - **User-Triggered Research**: Seamless AI-to-research workflow
+- **Research History**: Inline “Recent Research” list with one-click report restore
 - **Production Ready**: Vercel deployment + Python/Docker backend + Neon database
 
 ### 🧠 Intelligent Context Management (Phase 1.5)
@@ -339,14 +340,29 @@ pytest tests/ --cov=src --cov-report=html
 cd ai-chatbot-main
 
 # Unit tests
-npm test
+pnpm test:unit
 
 # E2E tests (Phase 3 updated)
-npx playwright test
+pnpm test:e2e
+
+# Visual regression (Percy)
+export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
+PERCY_TOKEN=*** pnpm test:visual
+
+# Accessibility checks (axe-core)
+export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
+pnpm test:a11y
+
+# Performance audits (Lighthouse CI)
+export NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW=true
+pnpm test:perf
 
 # Interactive E2E
-npx playwright test --ui
+pnpm exec playwright test --ui
 ```
+
+> Percy 测试会访问 `/research-preview` 场景页面；请仅在本地或具备受控凭据的环境下开启 `NEXT_PUBLIC_ENABLE_RESEARCH_PREVIEW`。  
+> 研究端到端流程测试需设置 `RUN_RESEARCH_E2E=true` 且确保 FastAPI 后端与 Neon 数据库可用。
 
 ### E2E Test Coverage (Phase 3)
 
@@ -493,6 +509,7 @@ NODE_ENV=development
 - ReDoc: http://localhost:8000/redoc
 
 ### Development Guides
+- 🤖 [Repository Guidelines](./AGENTS.md) - Contributor workflow and coding standards
 - 💻 [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) - **Complete setup and workflow**
 - 🔧 [Environment Variables Guide](./docs/ENVIRONMENT_VARIABLES.md)
 - 🗄️ [Database Configuration](./docs/DATABASE_CONFIGURATION.md)

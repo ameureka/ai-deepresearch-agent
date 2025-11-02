@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SparklesIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
@@ -17,16 +17,30 @@ export function ResearchButton({
   disabled = false,
 }: ResearchButtonProps) {
   const [isStarting, setIsStarting] = useState(false);
+  const isMountedRef = useRef(true);
+  const trimmedPrompt = prompt.trim();
+  const isPromptEmpty = trimmedPrompt.length === 0;
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleClick = async () => {
-    if (isStarting || disabled) return;
+    if (isStarting || disabled || isPromptEmpty) {
+      return;
+    }
 
     setIsStarting(true);
     try {
-      await onStart(prompt);
+      await onStart(trimmedPrompt);
     } catch (error) {
       console.error("Failed to start research:", error);
-      setIsStarting(false);
+    } finally {
+      if (isMountedRef.current) {
+        setIsStarting(false);
+      }
     }
   };
 
@@ -42,13 +56,15 @@ export function ResearchButton({
         <p className="font-medium text-foreground text-sm">
           Start research on this topic?
         </p>
-        <p className="mt-1 truncate text-muted-foreground text-xs">{prompt}</p>
+        <p className="mt-1 truncate text-muted-foreground text-xs">
+          {trimmedPrompt || "Enter a research topic above to get started."}
+        </p>
       </div>
 
       <Button
         className="shrink-0 gap-2"
         data-testid="research-button"
-        disabled={disabled || isStarting}
+        disabled={disabled || isStarting || isPromptEmpty}
         onClick={handleClick}
         size="sm"
         variant="default"

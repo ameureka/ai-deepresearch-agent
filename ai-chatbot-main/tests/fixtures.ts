@@ -1,11 +1,18 @@
 import { expect as baseExpect, test as baseTest } from "@playwright/test";
 import { getUnixTime } from "date-fns";
 import { createAuthenticatedContext, type UserContext } from "./helpers";
+import type { ResearchEvent } from "@/hooks/use-research-progress";
+import {
+  mockResearchEvents,
+  mockResearchPrompt,
+} from "./fixtures/research";
 
 type Fixtures = {
   adaContext: UserContext;
   babbageContext: UserContext;
   curieContext: UserContext;
+  researchPrompt: string;
+  researchEvents: ResearchEvent[];
 };
 
 export const test = baseTest.extend<object, Fixtures>({
@@ -44,6 +51,18 @@ export const test = baseTest.extend<object, Fixtures>({
       await curie.context.close();
     },
     { scope: "worker" },
+  ],
+  researchPrompt: [
+    async ({}, use) => {
+      await use(mockResearchPrompt);
+    },
+    { scope: "test" },
+  ],
+  researchEvents: [
+    async ({}, use) => {
+      await use(mockResearchEvents);
+    },
+    { scope: "test" },
   ],
 });
 

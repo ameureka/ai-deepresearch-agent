@@ -33,6 +33,30 @@ export class ChatPage {
     return this.page.getByTestId("scroll-to-bottom-button");
   }
 
+  get researchPanel() {
+    return this.page.getByTestId("research-panel");
+  }
+
+  get researchButton() {
+    return this.page.getByTestId("research-button");
+  }
+
+  get researchProgress() {
+    return this.page.getByTestId("research-progress");
+  }
+
+  async getResearchTaskMetadata(): Promise<{
+    taskId: string | null;
+    status: string | null;
+  }> {
+    const panel = this.page.getByTestId("research-panel");
+    await panel.waitFor({ state: "attached" });
+    return panel.evaluate((node) => ({
+      taskId: node.getAttribute("data-task-id"),
+      status: node.getAttribute("data-status"),
+    }));
+  }
+
   async createNewChat() {
     await this.page.goto("/");
   }
@@ -133,6 +157,51 @@ export class ChatPage {
       .getByTestId(`visibility-selector-item-${chatVisibility}`)
       .click();
     expect(await this.getSelectedVisibility()).toBe(chatVisibility);
+  }
+
+  async waitForResearchSuggestion() {
+    await this.researchPanel.waitFor({ state: "visible" });
+    await expect(this.researchButton).toBeVisible();
+  }
+
+  async startSuggestedResearch() {
+    await this.waitForResearchSuggestion();
+    await this.researchButton.click();
+  }
+
+  async waitForResearchStatus(status: "running" | "done" | "error") {
+    const keyword =
+      status === "running"
+        ? "research in progress"
+        : status === "done"
+        ? "research completed"
+        : "research failed";
+
+    await this.page.waitForFunction((expected) => {
+      const element = document.querySelector(
+        "[data-testid='research-progress']"
+      );
+      const text = element?.textContent?.toLowerCase() ?? "";
+      return text.includes(expected);
+    }, keyword);
+  }
+
+  async cancelResearch() {
+    await this.page
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+  }
+
+  async retryResearch() {
+    await this.page.getByRole("button", { name: "Retry", exact: true }).click();
+  }
+
+  async getResearchEvents() {
+    const progressText = await this.researchProgress.innerText();
+    return progressText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
   }
 
   async getRecentAssistantMessage() {

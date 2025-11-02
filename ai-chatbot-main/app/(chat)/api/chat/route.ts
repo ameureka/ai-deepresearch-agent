@@ -23,7 +23,6 @@ import type { ChatModel } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { myProvider } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
-import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { isProductionEnvironment } from "@/lib/constants";
@@ -175,25 +174,35 @@ export async function POST(request: Request) {
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // 普通聊天默认不暴露文档类工具，避免模型自动创建 Artifact。
+        // 如果未来需要重新开放，可将 allowArtifacts 置为 true 或根据业务条件动态控制。
+        const allowArtifacts = false;
+
+        const artifactsEnabled =
+          allowArtifacts && selectedChatModel !== "chat-model-reasoning";
+
+        const activeTools =
+          selectedChatModel === "chat-model-reasoning"
+            ? []
+            : [
+                ...(artifactsEnabled ? ["createDocument", "updateDocument"] : []),
+                "requestSuggestions",
+              ];
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === "chat-model-reasoning"
-              ? []
-              : [
-                  "getWeather",
-                  "createDocument",
-                  "updateDocument",
-                  "requestSuggestions",
-                ],
+          experimental_activeTools: activeTools,
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
+            ...(artifactsEnabled
+              ? {
+                  createDocument: createDocument({ session, dataStream }),
+                  updateDocument: updateDocument({ session, dataStream }),
+                }
+              : {}),
             requestSuggestions: requestSuggestions({
               session,
               dataStream,

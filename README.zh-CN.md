@@ -6,7 +6,7 @@
 
 一个生产就绪的 AI 研究助手，具有现代化的 Next.js 前端（实时研究进度追踪）和由多个专业智能体（规划器、研究员、写作者、编辑）驱动的 FastAPI 后端。
 
-[![版本](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
+[![版本](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
 [![许可证](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -15,11 +15,12 @@
 
 ## 🎯 功能特性
 
-### ✨ 全栈集成（第 3、4 阶段）
+### ✨ 全栈集成（第 3、4.5 阶段）
 - **现代化 UI**：Next.js 15 配合 App Router 和服务器组件
-- **实时更新**：基于 SSE 的研究进度流式传输
+- **实时更新**：基于 SSE 的研究进度流式传输与排队耗时反馈
 - **响应式设计**：移动优先，带有固定研究面板
 - **用户触发研究**：无缝的 AI 到研究工作流
+- **研究历史**：内置“最近研究”列表，可一键重新打开历史报告
 - **生产就绪**：Vercel 部署 + Python/Docker 后端 + Neon 数据库
 
 ### 🧠 智能上下文管理（第 1.5 阶段）

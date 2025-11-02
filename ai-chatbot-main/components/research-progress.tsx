@@ -5,14 +5,20 @@ import {
   AlertCircle,
   CheckCircle2,
   Circle,
+  Copy,
+  Download,
+  Eye,
   Loader2,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   ResearchEvent,
   ResearchStatus,
+  ResearchQueueInfo,
 } from "@/hooks/use-research-progress";
 
 export interface ResearchProgressProps {
@@ -21,6 +27,13 @@ export interface ResearchProgressProps {
   error?: Error | null;
   onCancel?: () => void;
   onRetry?: () => void;
+  taskId?: string;
+  isAutoRetrying?: boolean;
+  report?: string | null;
+  queueInfo?: ResearchQueueInfo | null;
+  onViewReport?: () => void;
+  onCopyReport?: () => void | Promise<void>;
+  onExportReport?: () => void;
 }
 
 /**
@@ -28,8 +41,9 @@ export interface ResearchProgressProps {
  */
 function StatusIcon({ status }: { status: ResearchStatus }) {
   switch (status) {
-    case "connecting":
-    case "streaming":
+    case "queued":
+      return <Loader2 className="h-5 w-5 animate-spin text-amber-500" />;
+    case "running":
       return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
     case "done":
       return <CheckCircle2 className="h-5 w-5 text-green-500" />;
@@ -45,9 +59,9 @@ function StatusIcon({ status }: { status: ResearchStatus }) {
  */
 function getStatusText(status: ResearchStatus): string {
   switch (status) {
-    case "connecting":
-      return "Connecting to research backend...";
-    case "streaming":
+    case "queued":
+      return "Queued and waiting for execution...";
+    case "running":
       return "Research in progress...";
     case "done":
       return "Research completed successfully";
@@ -70,47 +84,366 @@ export function ResearchProgress({
   error,
   onCancel,
   onRetry,
+  taskId,
+  isAutoRetrying = false,
+  report,
+  queueInfo = null,
+  onViewReport,
+  onCopyReport,
+  onExportReport,
 }: ResearchProgressProps) {
-  // Calculate progress percentage based on events
-  const progressPercentage = (() => {
-    if (status === "done") return 100;
-    if (status === "error") return 0;
-    if (status === "idle") return 0;
+  const [queueElapsed, setQueueElapsed] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
+    "idle"
+  );
+  const [exportStatus, setExportStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+  const [isCopying, setIsCopying] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-    // Estimate progress based on event types
-    const hasStart = events.some((e) => e.type === "start");
-    const hasPlan = events.some((e) => e.type === "plan");
-    const progressCount = events.filter((e) => e.type === "progress").length;
+  const trimmedReport = useMemo(() => (report ?? "").trim(), [report]);
+  const hasReport = trimmedReport.length > 0;
 
-    let progress = 0;
-    if (hasStart) progress += 10;
-    if (hasPlan) progress += 20;
-    progress += Math.min(progressCount * 10, 70);
+  useEffect(() => {
+    if (!queueInfo?.enqueuedAt) {
+      setQueueElapsed(null);
+      return;
+    }
 
-    return Math.min(progress, 95); // Cap at 95% until done
-  })();
+    const enqueuedTime = new Date(queueInfo.enqueuedAt).getTime();
+    const formatElapsed = (end: number) => {
+      const diff = Math.max(0, end - enqueuedTime);
+      if (diff <= 0) {
+        return "0s";
+      }
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      if (hours > 0) {
+        return `${hours}h ${minutes % 60}m`;
+      }
+      if (minutes > 0) {
+        return `${minutes}m ${seconds % 60}s`;
+      }
+      return `${seconds}s`;
+    };
+
+    const resolveEndTimestamp = () => {
+      const startedAt = queueInfo.startedAt
+        ? new Date(queueInfo.startedAt).getTime()
+        : undefined;
+      const finishedAt = queueInfo.finishedAt
+        ? new Date(queueInfo.finishedAt).getTime()
+        : undefined;
+      const failedAt = queueInfo.failedAt
+        ? new Date(queueInfo.failedAt).getTime()
+        : undefined;
+
+      if (status === "queued") {
+        return Date.now();
+      }
+
+      if (typeof startedAt === "number") {
+        return startedAt;
+      }
+      if (typeof finishedAt === "number") {
+        return finishedAt;
+      }
+      if (typeof failedAt === "number") {
+        return failedAt;
+      }
+
+      const fallbackEvent = events.find(
+        (event) =>
+          (event.type === "start" || event.type === "progress") &&
+          typeof event.timestamp === "number"
+      );
+      if (fallbackEvent?.timestamp) {
+        return fallbackEvent.timestamp;
+      }
+      return Date.now();
+    };
+
+    if (status === "queued") {
+      const updateElapsed = () => {
+        setQueueElapsed(formatElapsed(Date.now()));
+      };
+      updateElapsed();
+      const timer = window.setInterval(updateElapsed, 1000);
+      return () => window.clearInterval(timer);
+    }
+
+    const resolvedEnd = resolveEndTimestamp();
+    setQueueElapsed(formatElapsed(resolvedEnd));
+  }, [
+    events,
+    queueInfo?.enqueuedAt,
+    queueInfo?.failedAt,
+    queueInfo?.finishedAt,
+    queueInfo?.startedAt,
+    status,
+  ]);
+
+  useEffect(() => {
+    if (copyStatus === "idle") {
+      return;
+    }
+    const timer = window.setTimeout(() => setCopyStatus("idle"), 2000);
+    return () => window.clearInterval(timer);
+  }, [copyStatus]);
+
+  useEffect(() => {
+    if (exportStatus === "idle") {
+      return;
+    }
+    const timer = window.setTimeout(() => setExportStatus("idle"), 2000);
+    return () => window.clearInterval(timer);
+  }, [exportStatus]);
+
+  const handleViewReport = useCallback(() => {
+    if (!hasReport || !onViewReport) {
+      return;
+    }
+    onViewReport();
+  }, [hasReport, onViewReport]);
+
+  const handleCopyReport = useCallback(async () => {
+    if (!hasReport) {
+      setCopyStatus("error");
+      return;
+    }
+    setIsCopying(true);
+    try {
+      if (onCopyReport) {
+        await Promise.resolve(onCopyReport());
+      } else if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.writeText
+      ) {
+        await navigator.clipboard.writeText(trimmedReport);
+      } else {
+        throw new Error("Clipboard API is unavailable");
+      }
+      setCopyStatus("success");
+    } catch (copyError) {
+      console.error("Failed to copy research report:", copyError);
+      setCopyStatus("error");
+    } finally {
+      setIsCopying(false);
+    }
+  }, [hasReport, onCopyReport, trimmedReport]);
+
+  const handleExportReport = useCallback(() => {
+    if (!hasReport) {
+      setExportStatus("error");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      if (onExportReport) {
+        onExportReport();
+      } else if (typeof document !== "undefined" && trimmedReport) {
+        const blob = new Blob([trimmedReport], {
+          type: "text/markdown;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        anchor.href = url;
+        anchor.download = `research-report-${timestamp}.md`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      }
+      setExportStatus("success");
+    } catch (exportError) {
+      console.error("Failed to export research report:", exportError);
+      setExportStatus("error");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [hasReport, onExportReport, trimmedReport]);
+
+  const progressMeta = useMemo(() => {
+    if (events.length === 0) {
+      return {
+        planSteps: undefined as string[] | undefined,
+        totalSteps: undefined as number | undefined,
+        completedSteps: 0,
+        currentStepTitle: undefined as string | undefined,
+      };
+    }
+
+    const reversed = [...events].reverse();
+    const latestProgressEvent = reversed.find((event) => event.type === "progress");
+    const planEvent = reversed.find((event) => event.type === "plan");
+
+    const planSteps = Array.isArray(planEvent?.data?.steps)
+      ? (planEvent?.data?.steps as string[])
+      : undefined;
+
+    let totalSteps: number | undefined;
+    let completedSteps = 0;
+    let currentStepTitle: string | undefined;
+
+    if (
+      latestProgressEvent &&
+      latestProgressEvent.data &&
+      typeof latestProgressEvent.data === "object"
+    ) {
+      const data = latestProgressEvent.data as Record<string, unknown>;
+      if (typeof data.total === "number") {
+        totalSteps = data.total;
+      }
+      if (typeof data.step === "number") {
+        completedSteps = data.step;
+      }
+      if (typeof data.message === "string") {
+        currentStepTitle = data.message;
+      } else if (typeof data.title === "string") {
+        currentStepTitle = data.title;
+      }
+    }
+
+    if (!totalSteps && planSteps) {
+      totalSteps = planSteps.length;
+    }
+    if (!completedSteps) {
+      completedSteps = events.filter((event) => event.type === "progress").length;
+    }
+
+    return { planSteps, totalSteps, completedSteps, currentStepTitle };
+  }, [events]);
+
+  const progressPercentage = useMemo(() => {
+    if (status === "done") {
+      return 100;
+    }
+    if (status === "error" || status === "idle") {
+      return 0;
+    }
+    if (status === "queued") {
+      return 10;
+    }
+    if (progressMeta.totalSteps && progressMeta.totalSteps > 0) {
+      return Math.min(
+        Math.round(
+          (Math.min(progressMeta.completedSteps, progressMeta.totalSteps) /
+            progressMeta.totalSteps) *
+            100
+        ),
+        95
+      );
+    }
+    if (events.length > 0) {
+      return Math.min(25 + progressMeta.completedSteps * 12, 90);
+    }
+    return status === "running" ? 15 : 0;
+  }, [events.length, progressMeta.completedSteps, progressMeta.totalSteps, status]);
+
+  const progressSummary = useMemo(() => {
+    if (status === "done") {
+      return "All steps completed";
+    }
+    if (progressMeta.totalSteps && progressMeta.totalSteps > 0) {
+      const current = Math.min(progressMeta.completedSteps, progressMeta.totalSteps);
+      return `Step ${current} of ${progressMeta.totalSteps}`;
+    }
+    if (progressMeta.completedSteps > 0) {
+      return `${progressMeta.completedSteps} steps completed`;
+    }
+    return undefined;
+  }, [progressMeta.completedSteps, progressMeta.totalSteps, status]);
+
+  const activeEventIndex = events.length - 1;
+  const reportPreview = useMemo(() => {
+    if (!report) return null;
+    const trimmed = report.trim();
+    if (!trimmed) return null;
+    return trimmed.length > 220 ? `${trimmed.slice(0, 217)}…` : trimmed;
+  }, [report]);
+
+  const queueDetails = useMemo(() => {
+    if (!queueInfo) {
+      return { attemptLabel: null as string | null };
+    }
+
+    const retryCount =
+      typeof queueInfo.retryCount === "number" && queueInfo.retryCount > 0
+        ? queueInfo.retryCount
+        : 0;
+    const attemptLabel =
+      retryCount > 0 ? `Retry attempt ${retryCount + 1}` : null;
+
+    return { attemptLabel };
+  }, [queueInfo]);
+
+  const showEmptyState =
+    events.length === 0 && (status === "queued" || status === "running");
+  const showReportActions = status === "done" && hasReport;
+  const copyLabel =
+    copyStatus === "success"
+      ? "Copied!"
+      : copyStatus === "error"
+      ? "Copy failed"
+      : "Copy";
+  const exportLabel =
+    exportStatus === "success"
+      ? "Exported!"
+      : exportStatus === "error"
+      ? "Export failed"
+      : "Export";
 
   return (
-    <div className="space-y-4 p-4" data-testid="research-progress">
+    <div
+      className="space-y-4 p-4"
+      data-task-id={taskId ?? undefined}
+      data-testid="research-progress"
+      data-status={status}
+    >
       {/* Header with Status */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <StatusIcon status={status} />
           <div>
             <p className="font-medium text-foreground text-sm">
               {getStatusText(status)}
             </p>
-            {status === "streaming" && (
+            {status === "queued" && (
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/70 dark:bg-amber-400/10 dark:text-amber-200"
+                >
+                  Queued
+                </Badge>
+                <span className="leading-tight">
+                  Waiting for an available research worker…
+                </span>
+                {queueElapsed && (
+                  <span className="leading-tight">Queued for {queueElapsed}</span>
+                )}
+                {queueDetails.attemptLabel && (
+                  <span className="leading-tight">{queueDetails.attemptLabel}</span>
+                )}
+              </div>
+            )}
+            {status === "running" && (
               <p className="mt-0.5 text-muted-foreground text-xs">
-                {events.length} events received
+                {progressSummary ?? `${events.length} events received`}
               </p>
+            )}
+            {status === "done" && progressSummary && (
+              <p className="mt-0.5 text-muted-foreground text-xs">{progressSummary}</p>
             )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          {status === "streaming" && onCancel && (
+        <div className="flex items-center gap-2 sm:self-end">
+          {(status === "queued" || status === "running") && onCancel && (
             <Button
               className="text-xs"
               onClick={onCancel}
@@ -133,13 +466,67 @@ export function ResearchProgress({
         </div>
       </div>
 
+      {showReportActions && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-muted-foreground/30 bg-muted/30 p-3">
+          <Button
+            className="gap-2"
+            onClick={handleViewReport}
+            size="sm"
+            variant="outline"
+            disabled={!onViewReport || !hasReport}
+          >
+            <Eye className="h-4 w-4" />
+            View full report
+          </Button>
+          <Button
+            className="gap-2"
+            onClick={handleCopyReport}
+            size="sm"
+            variant="ghost"
+            disabled={isCopying}
+          >
+            <Copy className="h-4 w-4" />
+            {copyLabel}
+          </Button>
+          <Button
+            className="gap-2"
+            onClick={handleExportReport}
+            size="sm"
+            variant="ghost"
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4" />
+            {exportLabel}
+          </Button>
+        </div>
+      )}
+
+      {showEmptyState && (
+        <div className="rounded-md border border-dashed border-muted bg-muted/40 p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Preparing research workflow…</span>
+          </div>
+          <div className="mt-3 space-y-2">
+            <div className="h-2 w-full animate-pulse rounded-full bg-muted-foreground/30" />
+            <div className="h-2 w-2/5 animate-pulse rounded-full bg-muted-foreground/20" />
+          </div>
+        </div>
+      )}
+
       {/* Progress Bar */}
-      {(status === "connecting" || status === "streaming") && (
+      {(status === "queued" || status === "running") && (
         <div className="space-y-2">
           <Progress className="h-2" value={progressPercentage} />
           <p className="text-right text-muted-foreground text-xs">
             {progressPercentage}%
           </p>
+        </div>
+      )}
+      {status === "done" && (
+        <div className="space-y-2">
+          <Progress className="h-2" value={100} />
+          <p className="text-right text-muted-foreground text-xs">100%</p>
         </div>
       )}
 
@@ -169,10 +556,29 @@ export function ResearchProgress({
         <div className="max-h-[300px] space-y-2 overflow-y-auto">
           <AnimatePresence>
             {events.map((event, index) => (
-              <EventItem event={event} index={index} key={index} />
+              <EventItem
+                event={event}
+                index={index}
+                isActive={index === activeEventIndex}
+                key={index}
+                totalSteps={progressMeta.totalSteps}
+                queueElapsed={queueElapsed}
+              />
             ))}
           </AnimatePresence>
         </div>
+      )}
+
+      {/* Report Preview */}
+      {status === "done" && reportPreview && (
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-md border border-muted bg-muted/40 p-3 text-xs text-muted-foreground"
+          initial={{ opacity: 0, y: 10 }}
+        >
+          <p className="mb-1 font-medium text-foreground text-sm">Report summary</p>
+          <p className="leading-relaxed">{reportPreview}</p>
+        </motion.div>
       )}
     </div>
   );
@@ -181,15 +587,47 @@ export function ResearchProgress({
 /**
  * Individual Event Item
  */
-function EventItem({ event, index }: { event: ResearchEvent; index: number }) {
+function EventItem({
+  event,
+  index,
+  isActive,
+  totalSteps,
+  queueElapsed,
+}: {
+  event: ResearchEvent;
+  index: number;
+  isActive: boolean;
+  totalSteps?: number;
+  queueElapsed?: string | null;
+}) {
   const getEventIcon = () => {
     switch (event.type) {
+      case "queued":
+        return (
+          <Circle
+            className={`h-4 w-4 ${isActive ? "text-amber-600" : "text-amber-500"}`}
+          />
+        );
       case "start":
-        return <Circle className="h-4 w-4 text-blue-500" />;
+        return (
+          <Circle
+            className={`h-4 w-4 ${isActive ? "text-blue-600" : "text-blue-500"}`}
+          />
+        );
       case "plan":
-        return <Circle className="h-4 w-4 text-purple-500" />;
+        return (
+          <Circle
+            className={`h-4 w-4 ${isActive ? "text-purple-600" : "text-purple-500"}`}
+          />
+        );
       case "progress":
-        return <Loader2 className="h-4 w-4 text-blue-500" />;
+        return (
+          <Loader2
+            className={`h-4 w-4 animate-spin ${
+              isActive ? "text-blue-600" : "text-blue-500"
+            }`}
+          />
+        );
       case "done":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case "error":
@@ -201,12 +639,30 @@ function EventItem({ event, index }: { event: ResearchEvent; index: number }) {
 
   const getEventLabel = () => {
     switch (event.type) {
+      case "queued":
+        return "Queued";
       case "start":
         return "Research Started";
       case "plan":
+        if (Array.isArray(event.data?.steps)) {
+          return `Research Plan (${event.data.steps.length} steps)`;
+        }
         return "Research Plan";
       case "progress":
-        return event.data.status || "Progress Update";
+        if (
+          typeof event.data === "object" &&
+          event.data &&
+          typeof event.data.step === "number"
+        ) {
+          const step = event.data.step as number;
+          const total =
+            typeof event.data.total === "number" ? (event.data.total as number) : totalSteps;
+          if (total) {
+            return `Step ${Math.min(step, total)} of ${total}`;
+          }
+          return `Step ${step}`;
+        }
+        return "Progress Update";
       case "done":
         return "Research Completed";
       case "error":
@@ -217,20 +673,44 @@ function EventItem({ event, index }: { event: ResearchEvent; index: number }) {
   };
 
   const getEventDescription = () => {
+    if (event.type === "queued") {
+      if (queueElapsed) {
+        return `Queued for ${queueElapsed}`;
+      }
+      if (event.timestamp) {
+        return `Queued at ${new Date(event.timestamp).toLocaleTimeString()}`;
+      }
+      if (typeof event.data?.message === "string") {
+        return event.data.message;
+      }
+      return "Waiting for an available research worker";
+    }
+
     if (typeof event.data === "string") {
       return event.data;
     }
 
-    if (event.data.message) {
-      return event.data.message;
+    if (event.data?.message) {
+      return event.data.message as string;
     }
 
-    if (event.data.url) {
-      return `Searching: ${event.data.url}`;
+    if (event.data?.url) {
+      return `Searching: ${event.data.url as string}`;
     }
 
-    if (event.data.report) {
+    if (event.data?.report) {
       return "Research report generated";
+    }
+
+    if (
+      event.type === "plan" &&
+      Array.isArray(event.data?.steps) &&
+      event.data.steps.length > 0
+    ) {
+      const [first, second] = event.data.steps as string[];
+      const additional = event.data.steps.length - 2;
+      const summary = [first, second].filter(Boolean).join(" • ");
+      return additional > 0 ? `${summary} • +${additional} more` : summary;
     }
 
     return null;
@@ -239,25 +719,50 @@ function EventItem({ event, index }: { event: ResearchEvent; index: number }) {
   return (
     <motion.div
       animate={{ opacity: 1, x: 0 }}
-      className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent/50"
+      className={
+        event.type === "queued"
+          ? "flex items-center justify-between rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+          : `flex items-start gap-3 rounded-md p-2 transition-colors ${
+              isActive ? "bg-accent/80" : "hover:bg-accent/40"
+            }`
+      }
       exit={{ opacity: 0, x: 20 }}
       initial={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2, delay: index * 0.05 }}
     >
-      <div className="mt-0.5 shrink-0">{getEventIcon()}</div>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-foreground text-sm">{getEventLabel()}</p>
-        {getEventDescription() && (
-          <p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs">
-            {getEventDescription()}
-          </p>
-        )}
-        {event.timestamp && (
-          <p className="mt-1 text-muted-foreground text-xs">
-            {new Date(event.timestamp).toLocaleTimeString()}
-          </p>
-        )}
-      </div>
+      {event.type === "queued" ? (
+        <>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="border border-dashed border-muted-foreground/30 bg-transparent text-xs"
+            >
+              {getEventLabel()}
+            </Badge>
+            <span>{getEventDescription()}</span>
+          </div>
+          {event.timestamp && (
+            <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="mt-0.5 shrink-0">{getEventIcon()}</div>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-foreground text-sm">{getEventLabel()}</p>
+            {getEventDescription() && (
+              <p className="mt-0.5 line-clamp-3 text-muted-foreground text-xs">
+                {getEventDescription()}
+              </p>
+            )}
+            {event.timestamp && (
+              <p className="mt-1 text-muted-foreground text-xs">
+                {new Date(event.timestamp).toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </motion.div>
   );
 }

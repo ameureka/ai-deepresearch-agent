@@ -1,6 +1,6 @@
 {
   "name": "ai-chatbot",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
@@ -15,10 +15,22 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
-    "test": "export PLAYWRIGHT=True && pnpm exec playwright test"
+    "test": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "test:unit": "vitest",
+    "test:unit:ui": "vitest --ui",
+    "test:unit:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "export PLAYWRIGHT=True && pnpm exec playwright test",
+    "test:all": "pnpm test:unit:run && pnpm test:e2e",
+    "test:a11y": "pnpm exec playwright test --grep \"@a11y\"",
+    "test:perf": "pnpm exec lhci autorun",
+    "test:visual": "pnpm exec percy exec -- pnpm exec playwright test --project=e2e --grep \"@visual\"",
+    "percy:upload": "pnpm exec percy upload"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^1.0.26",
     "@ai-sdk/gateway": "^1.0.15",
+    "@ai-sdk/openai": "^2.0.59",
     "@ai-sdk/provider": "2.0.0",
     "@ai-sdk/react": "2.0.26",
     "@ai-sdk/xai": "2.0.13",
@@ -86,15 +98,24 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "tokenlens": "1.3.0",
+    "undici": "^6.19.7",
     "use-stick-to-bottom": "^1.1.1",
     "usehooks-ts": "^3.1.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.8.0",
     "@biomejs/biome": "2.2.2",
-    "@playwright/test": "^1.50.1",
+    "@lhci/cli": "^0.13.0",
+    "@neondatabase/serverless": "^0.10.0",
+    "@percy/cli": "^1.31.4",
+    "@percy/playwright": "^1.0.9",
+    "@playwright/test": "^1.51.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/d3-scale": "^4.0.8",
     "@types/node": "^22.8.6",
     "@types/papaparse": "^5.3.15",
@@ -102,12 +123,18 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@vitejs/plugin-react": "^5.1.0",
+    "@vitest/ui": "^4.0.6",
+    "axe-core": "^4.9.0",
     "drizzle-kit": "^0.25.0",
+    "happy-dom": "^20.0.10",
+    "jsdom": "^27.1.0",
     "postcss": "^8",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
-    "ultracite": "5.3.9"
+    "ultracite": "5.3.9",
+    "vitest": "^4.0.6"
   },
   "packageManager": "pnpm@9.12.3"
 }

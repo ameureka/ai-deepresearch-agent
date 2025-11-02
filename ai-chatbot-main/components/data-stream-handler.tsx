@@ -6,6 +6,12 @@ import { artifactDefinitions } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 
 export function DataStreamHandler() {
+  // 普通聊天阶段默认关闭 Artifact 流水线，避免模型生成代码时自动拉起文档面板。
+  const ENABLE_ARTIFACT_STREAM = false;
+  if (!ENABLE_ARTIFACT_STREAM) {
+    return null;
+  }
+
   const { dataStream } = useDataStream();
 
   const { artifact, setArtifact, setMetadata } = useArtifact();
