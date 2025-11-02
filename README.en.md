@@ -49,29 +49,23 @@ A production-ready AI research assistant featuring a modern Next.js frontend wit
 
 ```
 ai-deepresearch-agent/
-├── ai-chatbot-main/              # Next.js Frontend
-│   ├── app/                      # Next.js App Router
-│   ├── components/               # React Components
-│   │   ├── chat.tsx             # Main chat interface
-│   │   ├── research-button.tsx  # Research trigger button
-│   │   ├── research-panel.tsx   # Research UI container
-│   │   └── research-progress.tsx # Real-time progress display
-│   ├── hooks/                    # React Hooks
-│   │   └── use-research-progress.ts # SSE research hook
-│   ├── lib/                      # Utilities
-│   │   └── research-utils.ts    # Keyword detection
-│   └── playwright/               # E2E Tests
-├── src/                          # FastAPI Backend
-│   ├── planning_agent.py         # Task planning and execution
-│   ├── agents.py                 # Research/Writer/Editor agents
-│   ├── research_tools.py         # Search tools integration
-│   ├── model_adapter.py          # Model parameter adaptation
-│   ├── chunking.py               # Text chunking processor
-│   └── context_manager.py        # Context management
-├── main.py                       # FastAPI entry point
-├── Dockerfile.backend            # Backend Docker configuration
-├── docker-compose.yml            # Multi-service orchestration
-└── README.md                     # This file
+├── ai-chatbot-main/            # Next.js 15 frontend
+│   ├── app/(chat)/...          # Chat routes & API proxies
+│   ├── components/             # Shared UI (ResearchPanel, Artifact, ...)
+│   ├── hooks/                  # Custom hooks (useResearchProgress, etc.)
+│   ├── lib/                    # DB queries, providers, utilities
+│   ├── tests/                  # Vitest + Playwright suites
+│   └── package.json            # Frontend manifest
+├── src/                        # FastAPI backend modules
+│   ├── agents.py               # Research/Writer/Editor agent wrappers
+│   ├── planning_agent.py       # Planner & execution pipeline
+│   ├── research_tools.py       # Tavily/Wikipedia integrations
+│   ├── sse.py                  # Task queue & streaming helpers
+│   └── model_adapter.py        # Model selection & fallback logic
+├── main.py                     # FastAPI entry point (APIs + queue worker)
+├── scripts/                    # Setup & developer utilities
+├── docker-compose.yml          # Local orchestration (frontend + backend)
+└── README.en.md                # English documentation
 ```
 
 ### System Architecture

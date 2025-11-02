@@ -49,29 +49,23 @@
 
 ```
 ai-deepresearch-agent/
-├── ai-chatbot-main/              # Next.js 前端
-│   ├── app/                      # Next.js App Router
-│   ├── components/               # React 组件
-│   │   ├── chat.tsx             # 主聊天界面
-│   │   ├── research-button.tsx  # 研究触发按钮
-│   │   ├── research-panel.tsx   # 研究 UI 容器
-│   │   └── research-progress.tsx # 实时进度显示
-│   ├── hooks/                    # React Hooks
-│   │   └── use-research-progress.ts # SSE 研究 hook
-│   ├── lib/                      # 工具函数
-│   │   └── research-utils.ts    # 关键词检测
-│   └── playwright/               # E2E 测试
-├── src/                          # FastAPI 后端
-│   ├── planning_agent.py         # 任务规划和执行
-│   ├── agents.py                 # 研究/写作/编辑智能体
-│   ├── research_tools.py         # 搜索工具集成
-│   ├── model_adapter.py          # 模型参数适配
-│   ├── chunking.py               # 文本分块处理器
-│   └── context_manager.py        # 上下文管理
-├── main.py                       # FastAPI 入口点
-├── Dockerfile.backend            # 后端 Docker 配置
-├── docker-compose.yml            # 多服务编排
-└── README.md                     # 本文件
+├── ai-chatbot-main/            # Next.js 15 前端
+│   ├── app/(chat)/...          # 聊天路由与 API 代理
+│   ├── components/             # 共享 UI（ResearchPanel、Artifact 等）
+│   ├── hooks/                  # 自定义 Hook（useResearchProgress 等）
+│   ├── lib/                    # 数据库查询、Provider 与工具函数
+│   ├── tests/                  # Vitest + Playwright 测试
+│   └── package.json            # 前端依赖清单
+├── src/                        # FastAPI 后端模块
+│   ├── agents.py               # 研究/写作/编辑智能体封装
+│   ├── planning_agent.py       # 规划器与执行流水线
+│   ├── research_tools.py       # Tavily、Wikipedia 集成
+│   ├── sse.py                  # 任务队列与流式工具
+│   └── model_adapter.py        # 模型选择与回退逻辑
+├── main.py                     # FastAPI 入口（API + 队列）
+├── scripts/                    # 初始化与开发脚本
+├── docker-compose.yml          # 本地编排（前端 + 后端）
+└── README.md                   # 项目文档
 ```
 
 ### 系统架构
