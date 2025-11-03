@@ -33,11 +33,12 @@ export const getWeather = tool({
     city: z.string().optional().describe("City name (e.g., 'San Francisco', 'New York', 'London')"),
   }),
   execute: async (input) => {
-    let latitude: number;
-    let longitude: number;
+    const hasCity = typeof input.city === "string" && input.city.trim().length > 0;
+    let latitude: number | undefined;
+    let longitude: number | undefined;
 
-    if ("city" in input) {
-      const coords = await geocodeCity(input.city);
+    if (hasCity) {
+      const coords = await geocodeCity(input.city!);
       if (!coords) {
         return {
           error: `Could not find coordinates for "${input.city}". Please check the city name.`,
@@ -46,8 +47,14 @@ export const getWeather = tool({
       latitude = coords.latitude;
       longitude = coords.longitude;
     } else {
-      latitude = input.latitude;
-      longitude = input.longitude;
+      latitude = typeof input.latitude === "number" ? input.latitude : undefined;
+      longitude = typeof input.longitude === "number" ? input.longitude : undefined;
+    }
+
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      return {
+        error: "Please provide either a valid city name or both latitude and longitude coordinates.",
+      };
     }
 
     const response = await fetch(
@@ -56,7 +63,7 @@ export const getWeather = tool({
 
     const weatherData = await response.json();
     
-    if ("city" in input) {
+    if (hasCity) {
       weatherData.cityName = input.city;
     }
     

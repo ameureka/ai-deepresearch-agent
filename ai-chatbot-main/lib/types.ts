@@ -20,7 +20,6 @@ type updateDocumentTool = InferUITool<ReturnType<typeof updateDocument>>;
 type requestSuggestionsTool = InferUITool<
   ReturnType<typeof requestSuggestions>
 >;
-
 export type ChatTools = {
   createDocument: createDocumentTool;
   updateDocument: updateDocumentTool;

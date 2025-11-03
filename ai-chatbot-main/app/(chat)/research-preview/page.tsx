@@ -1,7 +1,15 @@
 import { notFound } from "next/navigation";
-import { ResearchPanelPreview } from "@/components/research-panel-preview";
+import {
+  ResearchPanelPreview,
+  type Scenario,
+  type Theme,
+} from "@/components/research-panel-preview";
 
-const SCENARIOS = new Set(["idle", "active", "error", "done"]);
+const SCENARIO_VALUES = ["idle", "active", "error", "done"] as const;
+
+const isScenario = (value: string | undefined): value is Scenario =>
+  typeof value === "string" &&
+  (SCENARIO_VALUES as readonly string[]).includes(value);
 
 interface PageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -19,8 +27,10 @@ export default async function ResearchPreviewPage({ searchParams }: PageProps) {
   const scenarioParam = normalizeParam(params?.scenario);
   const themeParam = normalizeParam(params?.theme);
 
-  const scenario = SCENARIOS.has(scenarioParam) ? scenarioParam : "idle";
-  const theme = themeParam === "dark" ? "dark" : "light";
+  const scenario: Scenario = isScenario(scenarioParam)
+    ? scenarioParam
+    : "idle";
+  const theme: Theme = themeParam === "dark" ? "dark" : "light";
 
   return <ResearchPanelPreview scenario={scenario} theme={theme} />;
 }

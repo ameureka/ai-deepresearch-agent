@@ -9,7 +9,7 @@
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/app/(auth)/auth";
-import { Agent } from "undici";
+import { Agent, type Dispatcher } from "undici";
 import { ChatSDKError } from "@/lib/errors";
 import {
   createResearchTaskRecord,
@@ -267,6 +267,7 @@ export async function POST(request: NextRequest) {
       headersTimeout: 180_000, // 3 minutes to accommodate long planner/writer phases
       bodyTimeout: 0,
     });
+    type NodeFetchInit = RequestInit & { dispatcher?: Dispatcher };
 
     const maxConnectionAttempts = 3;
     let upstream: Response | null = null;
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
 
     for (let attempt = 0; attempt < maxConnectionAttempts; attempt++) {
       try {
-        upstream = await fetch(backendUrl, {
+        const fetchOptions: NodeFetchInit = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -282,7 +283,9 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({ prompt: prompt.trim() }),
           dispatcher,
-        });
+        };
+
+        upstream = await fetch(backendUrl, fetchOptions);
         break;
       } catch (error) {
         lastConnectionError = error;
@@ -424,10 +427,12 @@ export async function POST(request: NextRequest) {
           if (
             eventType === "plan" &&
             data &&
-            typeof data === "object" &&
-            Array.isArray((data as Record<string, unknown>).steps)
+            typeof data === "object"
           ) {
-            totalSteps = (data as Record<string, unknown>).steps?.length;
+            const planSteps = (data as { steps?: unknown }).steps;
+            if (Array.isArray(planSteps)) {
+              totalSteps = planSteps.length;
+            }
           }
 
           if (eventType === "progress" && data && typeof data === "object") {

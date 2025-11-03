@@ -7,8 +7,8 @@ import type {
   ResearchStatus,
 } from "@/hooks/use-research-progress";
 
-type Scenario = "idle" | "active" | "error" | "done";
-type Theme = "light" | "dark";
+export type Scenario = "idle" | "active" | "error" | "done";
+export type Theme = "light" | "dark";
 
 interface ScenarioState {
   prompt: string;

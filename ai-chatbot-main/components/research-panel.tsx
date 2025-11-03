@@ -220,11 +220,7 @@ export function ResearchPanel({
           <div className="max-h-[480px] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900">
             {!isActive && status === "idle" && hasPrompt && (
               <ResearchButton
-                disabled={
-                  status === "queued" ||
-                  status === "running" ||
-                  !prompt.trim().length
-                }
+                disabled={!prompt.trim().length}
                 onStart={onStart}
                 prompt={prompt}
               />
@@ -264,10 +260,10 @@ export function ResearchPanel({
                     </div>
                   </div>
                   <Button
-                    className="gap-2"
+                    className="gap-2 h-8 px-3 text-xs"
                     disabled={isHistoryLoading}
                     onClick={() => fetchHistory()}
-                    size="xs"
+                    size="sm"
                     variant="ghost"
                   >
                     {isHistoryLoading ? (
@@ -333,12 +329,12 @@ export function ResearchPanel({
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
-                                className="gap-1 text-xs"
+                                className="gap-1 h-8 px-3 text-xs"
                                 onClick={() =>
                                   hasReport &&
                                   onSelectHistoryTask?.(item.taskId)
                                 }
-                                size="xs"
+                                size="sm"
                                 variant="outline"
                                 disabled={!hasReport || !onSelectHistoryTask}
                               >
@@ -357,9 +353,9 @@ export function ResearchPanel({
                   history.length > COLLAPSED_COUNT &&
                   !isHistoryLoading && (
                     <Button
-                      className="mt-3 w-full gap-2 text-xs"
+                      className="mt-3 w-full gap-2 h-8 px-3 text-xs"
                       onClick={() => setIsExpanded((prev) => !prev)}
-                      size="xs"
+                      size="sm"
                       variant="ghost"
                     >
                       <ChevronDown
