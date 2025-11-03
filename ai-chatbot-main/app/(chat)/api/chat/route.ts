@@ -181,11 +181,11 @@ export async function POST(request: Request) {
         const artifactsEnabled =
           allowArtifacts && selectedChatModel !== "chat-model-reasoning";
 
-        const activeTools =
+        const activeTools: ("createDocument" | "updateDocument" | "requestSuggestions")[] =
           selectedChatModel === "chat-model-reasoning"
             ? []
             : [
-                ...(artifactsEnabled ? ["createDocument", "updateDocument"] : []),
+                ...(artifactsEnabled ? (["createDocument", "updateDocument"] as const) : []),
                 "requestSuggestions",
               ];
 
