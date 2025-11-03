@@ -436,8 +436,8 @@ NODE_ENV=development
 ## 🔄 版本历史
 
 ### v0.3.0 - 生产部署完成（2025-11-04）
-- ✅ **前端部署**：Vercel 平台（https://deepresearch.ameureka.com）
-- ✅ **后端部署**：腾讯云 Ubuntu + Cloudflare Tunnel（https://api.ameureka.com）
+- ✅ **前端部署**：Vercel 平台 https://deepresearch.ameureka.com
+- ✅ **后端部署**：腾讯云 Ubuntu + Cloudflare Tunnel https://api.ameureka.com
 - ✅ **数据库**：Neon PostgreSQL 生产环境
 - ✅ **完整文档**：
   - 后端部署状态文档（配置详情、运维命令）
