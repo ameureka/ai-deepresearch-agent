@@ -6,7 +6,7 @@
 
 一个生产就绪的 AI 研究助手，具有现代化的 Next.js 前端（实时研究进度追踪）和由多个专业智能体（规划器、研究员、写作者、编辑）驱动的 FastAPI 后端。
 
-[![版本](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
+[![版本](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
 [![许可证](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -435,6 +435,24 @@ NODE_ENV=development
 
 ## 🔄 版本历史
 
+### v0.3.0 - 生产部署完成（2025-11-04）
+- ✅ **前端部署**：Vercel 平台（https://deepresearch.ameureka.com）
+- ✅ **后端部署**：腾讯云 Ubuntu + Cloudflare Tunnel（https://api.ameureka.com）
+- ✅ **数据库**：Neon PostgreSQL 生产环境
+- ✅ **完整文档**：
+  - 后端部署状态文档（配置详情、运维命令）
+  - Cloudflare Tunnel 设置指南
+  - 环境配置检查指南
+  - 腾讯云部署指南
+- ✅ **运维脚本**：
+  - 后端状态检查脚本（check-backend-status.sh）
+  - 部署验证脚本（verify-deployment.sh）
+  - Cloudflare 自动化部署脚本（deploy-cloudflare.sh）
+  - 后端更新脚本（update-backend.sh）
+- ✅ **CORS 配置修复**：支持跨域请求
+- ✅ **TypeScript 类型错误修复**：构建成功
+- ✅ **生产环境验证**：所有服务运行正常
+
 ### v0.2.0 - 第 4 阶段部署（2025-11-01）
 - ✅ Monorepo 结构（前端 + 后端同级）
 - ✅ **架构说明**：
@@ -496,11 +514,17 @@ NODE_ENV=development
 - ✅ [部署检查清单](./.kiro/specs/phase4-deployment/tasks.md)
 
 ### 部署指南
-- 🚀 [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT.md) - **前端部署（Vercel 平台）**
-- 🌐 [生产环境部署指南](./docs/PRODUCTION_DEPLOYMENT.md) - **完整的生产环境设置**
-  - 前端：Vercel
-  - 后端：Render 或独立服务器（Python uvicorn）
-  - 数据库：Neon PostgreSQL SaaS
+- 🚀 [Vercel 部署指南](./docs/VERCEL_DEPLOYMENT_GUIDE.md) - **前端部署（Vercel 平台）**
+- ☁️ [腾讯云部署指南](./docs/TENCENT_CLOUD_DEPLOYMENT.md) - **后端部署到腾讯云**
+- 🔒 [Cloudflare Tunnel 设置](./docs/CLOUDFLARE_TUNNEL_SETUP.md) - **HTTPS 隧道配置**
+- 📊 [后端部署状态文档](./docs/BACKEND_DEPLOYMENT_STATUS.md) - **生产环境配置详情**
+- 🔍 [环境配置检查](./docs/ENVIRONMENT_CONFIG_CHECK.md) - **配置验证指南**
+
+### 运维脚本
+- 🛠️ [后端状态检查脚本](./scripts/check-backend-status.sh) - **一键检查后端服务状态**
+- ✅ [部署验证脚本](./scripts/verify-deployment.sh) - **验证完整部署**
+- 🚀 [Cloudflare 部署脚本](./scripts/deploy-cloudflare.sh) - **自动化部署到腾讯云**
+- 🔄 [后端更新脚本](./scripts/update-backend.sh) - **快速更新后端代码**
 
 ---
 
@@ -656,4 +680,4 @@ cd ai-chatbot-main && npm run dev
 
 **由 AI DeepResearch 团队用 ❤️ 制作**
 
-**版本**：0.2.0（第 4 阶段）| **最后更新**：2025-11-01
+**版本**：0.3.0（生产部署完成）| **最后更新**：2025-11-04

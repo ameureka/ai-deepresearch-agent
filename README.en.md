@@ -6,7 +6,7 @@
 
 A production-ready AI research assistant featuring a modern Next.js frontend with real-time research progress tracking and a FastAPI backend powered by multiple specialized agents (Planner, Researcher, Writer, Editor).
 
-[![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/ameureka/ai-deepresearch-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15.3-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
@@ -450,6 +450,24 @@ NODE_ENV=development
 
 ## 🔄 Version History
 
+### v0.3.0 - Production Deployment Complete (2025-11-04)
+- ✅ **Frontend Deployment**: Vercel Platform (https://deepresearch.ameureka.com)
+- ✅ **Backend Deployment**: Tencent Cloud Ubuntu + Cloudflare Tunnel (https://api.ameureka.com)
+- ✅ **Database**: Neon PostgreSQL Production Environment
+- ✅ **Complete Documentation**:
+  - Backend Deployment Status Document (configuration details, operations commands)
+  - Cloudflare Tunnel Setup Guide
+  - Environment Configuration Check Guide
+  - Tencent Cloud Deployment Guide
+- ✅ **Operations Scripts**:
+  - Backend Status Check Script (check-backend-status.sh)
+  - Deployment Verification Script (verify-deployment.sh)
+  - Cloudflare Automated Deployment Script (deploy-cloudflare.sh)
+  - Backend Update Script (update-backend.sh)
+- ✅ **CORS Configuration Fix**: Cross-origin request support
+- ✅ **TypeScript Type Errors Fix**: Build successful
+- ✅ **Production Environment Verification**: All services running normally
+
 ### v0.2.0 - Phase 4 Deployment (2025-11-01)
 - ✅ Monorepo structure (frontend + backend at same level)
 - ✅ **Architecture Clarification**:
@@ -512,11 +530,17 @@ NODE_ENV=development
 - ✅ [Deployment Checklist](./.kiro/specs/phase4-deployment/tasks.md)
 
 ### Deployment Guides
-- 🚀 [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md) - **Frontend deployment (Vercel platform)**
-- 🌐 [Production Deployment Guide](./docs/PRODUCTION_DEPLOYMENT.md) - **Complete production setup**
-  - Frontend: Vercel
-  - Backend: Render or independent server (Python uvicorn)
-  - Database: Neon PostgreSQL SaaS
+- 🚀 [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT_GUIDE.md) - **Frontend deployment (Vercel platform)**
+- ☁️ [Tencent Cloud Deployment Guide](./docs/TENCENT_CLOUD_DEPLOYMENT.md) - **Backend deployment to Tencent Cloud**
+- 🔒 [Cloudflare Tunnel Setup](./docs/CLOUDFLARE_TUNNEL_SETUP.md) - **HTTPS tunnel configuration**
+- 📊 [Backend Deployment Status](./docs/BACKEND_DEPLOYMENT_STATUS.md) - **Production configuration details**
+- 🔍 [Environment Config Check](./docs/ENVIRONMENT_CONFIG_CHECK.md) - **Configuration validation guide**
+
+### Operations Scripts
+- 🛠️ [Backend Status Check Script](./scripts/check-backend-status.sh) - **One-click backend service status check**
+- ✅ [Deployment Verification Script](./scripts/verify-deployment.sh) - **Verify complete deployment**
+- 🚀 [Cloudflare Deployment Script](./scripts/deploy-cloudflare.sh) - **Automated deployment to Tencent Cloud**
+- 🔄 [Backend Update Script](./scripts/update-backend.sh) - **Quick backend code update**
 
 ---
 
@@ -672,4 +696,4 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 **Made with ❤️ by the AI DeepResearch Team**
 
-**Version**: 0.2.0 (Phase 4) | **Last Updated**: 2025-10-31
+**Version**: 0.3.0 (Production Deployment Complete) | **Last Updated**: 2025-11-04
