@@ -43,14 +43,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     });
 
     toast.promise(deletePromise, {
-      loading: "Deleting all chats...",
+      loading: "Deleting all research sessions...",
       success: () => {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
         router.push("/");
         setShowDeleteAllDialog(false);
-        return "All chats deleted successfully";
+        return "All research sessions deleted successfully";
       },
-      error: "Failed to delete all chats",
+      error: "Failed to delete all research sessions",
     });
   };
 
@@ -68,7 +68,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 }}
               >
                 <span className="cursor-pointer rounded-md px-2 font-semibold text-lg hover:bg-muted">
-                  Chatbot
+                  DeepResearch Agent
                 </span>
               </Link>
               <div className="flex flex-row gap-1">
@@ -85,7 +85,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent align="end" className="hidden md:block">
-                      Delete All Chats
+                      Delete All Research Sessions
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -105,7 +105,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent align="end" className="hidden md:block">
-                    New Chat
+                    New Research Session
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -121,10 +121,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <AlertDialog onOpenChange={setShowDeleteAllDialog} open={showDeleteAllDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete all chats?</AlertDialogTitle>
+            <AlertDialogTitle>Delete all research sessions?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete all your
-              chats and remove them from our servers.
+              research sessions and remove them from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
