@@ -43,8 +43,6 @@ import { getChatHistoryPaginationKey } from "./sidebar-history";
 import { toast } from "./toast";
 import type { VisibilityType } from "./visibility-selector";
 
-const MAX_RESEARCH_CHAT_MESSAGE_CHARS = 8_000;
-
 export function Chat({
   id,
   initialMessages,
@@ -78,7 +76,6 @@ export function Chat({
   const [lastResearchReport, setLastResearchReport] = useState<string | null>(null);
   const [isResearchReportOpen, setIsResearchReportOpen] = useState(false);
   const [researchCooldownUntil, setResearchCooldownUntil] = useState<number | null>(null);
-  const activeResearchTopicRef = useRef<string | null>(null);
 
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -268,7 +265,6 @@ export function Chat({
       if (!trimmedPrompt) {
         return;
       }
-      activeResearchTopicRef.current = trimmedPrompt;
       setIsResearchReportOpen(false);
       setLastResearchReport(null);
       setResearchPrompt(trimmedPrompt);
@@ -292,40 +288,20 @@ export function Chat({
       setLastResearchReport(trimmedReport);
       setIsResearchReportOpen(true);
 
-      const topicLabel = activeResearchTopicRef.current;
-      const heading = topicLabel
-        ? `Research completed for "${topicLabel}".`
-        : "Research completed.";
-      let body = trimmedReport;
-      let truncatedNotice = "";
-      if (body.length > MAX_RESEARCH_CHAT_MESSAGE_CHARS) {
-        body = body.slice(0, MAX_RESEARCH_CHAT_MESSAGE_CHARS);
-        truncatedNotice =
-          "\n\n[Report truncated. Use \"View report\" to read the full version.]";
-      }
-      const summaryMessage = `${heading}\n\n${body}${truncatedNotice}`;
-
-      sendMessage({
-        role: "user" as const,
-        parts: [{ type: "text", text: summaryMessage }],
-      });
-
       toast({
         type: "success",
         description: "Research completed successfully!",
       });
 
       setResearchPrompt(null);
-      activeResearchTopicRef.current = null;
       setShowResearchUI(false);
       setResearchCooldownUntil(Date.now() + 120_000);
     },
-    [sendMessage]
+    []
   );
 
   // Research error handler
   const handleResearchError = useCallback((error: Error) => {
-    activeResearchTopicRef.current = null;
     toast({
       type: "error",
       description: `Research failed: ${error.message}`,
@@ -454,7 +430,6 @@ export function Chat({
 
   const handleCancelResearch = useCallback(() => {
     cancelResearchTask();
-    activeResearchTopicRef.current = null;
     setResearchPrompt(null);
     setShowResearchUI(false);
   }, [cancelResearchTask]);
