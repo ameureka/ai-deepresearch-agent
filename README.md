@@ -13,6 +13,20 @@
 
 ---
 
+## 🎥 项目演示视频 / Project Demo Video
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=CaXQkpPLbiY">
+    <img src="https://img.youtube.com/vi/CaXQkpPLbiY/maxresdefault.jpg" alt="点击观看演示视频 / Click to watch demo video" width="600" />
+  </a>
+  
+  <p>
+    <a href="https://www.youtube.com/watch?v=CaXQkpPLbiY">📺 在 YouTube 观看 / Watch on YouTube</a>
+  </p>
+</div>
+
+---
+
 ## 🎯 功能特性
 
 ### ✨ 全栈集成（第 3、4.5 阶段）

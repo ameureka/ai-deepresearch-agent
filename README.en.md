@@ -13,6 +13,20 @@ A production-ready AI research assistant featuring a modern Next.js frontend wit
 
 ---
 
+## 🎥 Project Demo Video
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=CaXQkpPLbiY">
+    <img src="https://img.youtube.com/vi/CaXQkpPLbiY/maxresdefault.jpg" alt="Click to watch demo video" width="600" />
+  </a>
+  
+  <p>
+    <a href="https://www.youtube.com/watch?v=CaXQkpPLbiY">📺 Watch on YouTube</a>
+  </p>
+</div>
+
+---
+
 ## 🎯 Features
 
 ### ✨ Full-Stack Integration (Phase 3 & 4.5)
